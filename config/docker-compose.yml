@@ -1,0 +1,189 @@
+version: '3.8'
+
+# Base Docker Compose Configuration for Fake News Game Theory
+# ===========================================================
+#
+# This is the base configuration that defines the core services
+# for the fake news game theory research platform.
+#
+# Services:
+# - frontend: Next.js application (port 3000)
+# - backend: FastAPI application (port 8000)
+# - db: PostgreSQL database for persistent data
+# - redis: Redis for caching and session management
+#
+# Usage:
+#   docker-compose up --build
+#
+# For development: Use docker-compose.dev.yml
+# For production: Use docker-compose.prod.yml
+
+services:
+  # =======================
+  # Frontend Service (Next.js)
+  # =======================
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      # API endpoint for backend communication
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+      - NEXT_PUBLIC_WS_URL=ws://backend:8000/ws
+      - NODE_ENV=production
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # =======================
+  # Backend Service (FastAPI)
+  # =======================
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Database connection
+      - DATABASE_URL=postgresql://postgres:fakenews_secure_password@db:5432/fakenews_db
+      # Redis connection
+      - REDIS_URL=redis://redis:6379/0
+      # Application settings
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - DEBUG=false
+      - CORS_ORIGINS=http://localhost:3000,http://frontend:3000
+      # ML Model settings
+      - ML_MODEL_PATH=/app/models
+      - HUGGINGFACE_CACHE_DIR=/app/cache/huggingface
+      # Game Theory settings
+      - SIMULATION_WORKERS=4
+      - MAX_SIMULATION_TIME=300
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      # Persistent storage for ML models
+      - ml_models:/app/models
+      - hf_cache:/app/cache/huggingface
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =======================
+  # Database Service (PostgreSQL)
+  # =======================
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      # Database credentials (change in production!)
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=fakenews_secure_password
+      - POSTGRES_DB=fakenews_db
+      # Performance tuning
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      # Persistent data storage
+      - postgres_data:/var/lib/postgresql/data
+      # Database initialization scripts
+      - ../config/database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      # Custom PostgreSQL configuration
+      - ../config/database/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    ports:
+      - "5432:5432"  # Expose for development access
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fakenews_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c log_statement=all
+      -c log_directory=/var/log/postgresql
+      -c log_filename=postgresql-%Y-%m-%d_%H%M%S.log
+      -c logging_collector=on
+
+  # =======================
+  # Redis Service (Caching & Sessions)
+  # =======================
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"  # Expose for development access
+    volumes:
+      # Persistent data storage
+      - redis_data:/data
+      # Custom Redis configuration
+      - ../config/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+# =======================
+# Named Volumes
+# =======================
+volumes:
+  # PostgreSQL persistent data
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ../data/postgres
+
+  # Redis persistent data
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ../data/redis
+
+  # Machine Learning models storage
+  ml_models:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ../data/models
+
+  # Hugging Face transformers cache
+  hf_cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ../data/cache/huggingface
+
+# =======================
+# Networks
+# =======================
+networks:
+  default:
+    name: fake-news-game-theory-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

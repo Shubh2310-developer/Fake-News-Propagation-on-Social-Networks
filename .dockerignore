@@ -1,0 +1,236 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Documentation
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+docs/
+*.md
+
+# License and legal
+LICENSE
+
+# Editor and IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Python specific
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.hypothesis/
+
+# Python environments
+.venv/
+venv/
+.env
+env/
+ENV/
+env.bak/
+venv.bak/
+.conda-env
+
+# Python distribution
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+notebooks/
+
+# Node.js specific
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+
+# Frontend builds and cache (exclude from backend containers)
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/node_modules/
+.next/
+out/
+build/
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Temporary folders
+tmp/
+temp/
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Machine Learning models and data (for optimization)
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.joblib
+*.model
+*.weights
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+
+# Large datasets (should use bind mounts instead)
+data/raw/
+data/processed/
+data/external/
+data/interim/
+*.csv
+*.json
+*.parquet
+*.feather
+*.xlsx
+*.xls
+
+# ML experiment tracking
+wandb/
+runs/
+logs/
+lightning_logs/
+mlruns/
+mlartifacts/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Compressed files
+*.zip
+*.tar.gz
+*.7z
+
+# Testing artifacts
+.pytest_cache/
+coverage/
+.coverage
+htmlcov/
+.tox/
+test-results/
+
+# Secrets and credentials (never include in images)
+*.pem
+*.key
+*.crt
+*.p12
+secrets.json
+credentials.json
+service-account.json
+.secrets
+config.ini
+
+# Local development files
+.local/
+local_config.py
+dev_settings.py
+docker-compose.override.yml
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Media files (if not needed for runtime)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.mp4
+*.avi
+*.mov
+
+# Research and presentation files
+*.pdf
+*.ppt
+*.pptx
+*.doc
+*.docx
+*.odt
+assets/papers/
+assets/presentations/
+
+# Infrastructure files (not needed in app containers)
+infrastructure/
+terraform/
+kubernetes/
+.terraform/
+*.tfstate*
+
+# Scripts not needed in runtime
+scripts/setup.sh
+scripts/install-dependencies.sh
+scripts/backup-data.sh
+
+# Game Theory specific - simulation results cache
+backend/game_theory/results/
+backend/network/cache/
+data/results/
+
+# Frontend specific (for backend containers)
+frontend/
+*.js.map
+*.ts.map
+
+# Development dependencies file
+requirements-dev.txt
+package-lock.json
+yarn.lock
+
+# Example and template files
+*.example
+*.template
+
+# Lock files from office apps
+~$*
+.~lock.*

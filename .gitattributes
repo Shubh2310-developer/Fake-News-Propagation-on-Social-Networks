@@ -1,0 +1,140 @@
+# Set default behavior to automatically normalize line endings
+* text=auto
+
+# Force LF line endings for Unix/Linux compatibility
+*.py text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.cfg text eol=lf
+*.ini text eol=lf
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+
+# Configuration files
+*.conf text eol=lf
+*.config text eol=lf
+Makefile text eol=lf
+Dockerfile text eol=lf
+docker-compose*.yml text eol=lf
+
+# Frontend specific files
+*.css text eol=lf
+*.scss text eol=lf
+*.sass text eol=lf
+*.less text eol=lf
+*.html text eol=lf
+*.htm text eol=lf
+*.svg text eol=lf
+
+# Documentation
+*.txt text eol=lf
+*.rst text eol=lf
+LICENSE text eol=lf
+CHANGELOG* text eol=lf
+README* text eol=lf
+CONTRIBUTING* text eol=lf
+
+# Machine Learning / Data Science
+*.ipynb text eol=lf
+*.py text eol=lf
+*.r text eol=lf
+*.R text eol=lf
+*.sql text eol=lf
+
+# Infrastructure as Code
+*.tf text eol=lf
+*.tfvars text eol=lf
+*.hcl text eol=lf
+
+# Kubernetes
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Binary files (explicitly marked to prevent text operations)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.7z binary
+*.rar binary
+
+# Machine Learning models (binary)
+*.pkl binary
+*.pickle binary
+*.h5 binary
+*.hdf5 binary
+*.joblib binary
+*.model binary
+*.weights binary
+*.pt binary
+*.pth binary
+*.ckpt binary
+*.safetensors binary
+
+# Data files
+*.csv text eol=lf
+*.tsv text eol=lf
+*.parquet binary
+*.feather binary
+*.xlsx binary
+*.xls binary
+
+# Office documents
+*.doc binary
+*.docx binary
+*.odt binary
+*.ppt binary
+*.pptx binary
+*.odp binary
+
+# Audio/Video
+*.mp3 binary
+*.mp4 binary
+*.avi binary
+*.mov binary
+*.wav binary
+
+# Font files
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.otf binary
+
+# Jupyter notebook processing
+# Convert notebooks to clean diffs by removing execution metadata
+*.ipynb filter=clean_ipynb
+
+# Git LFS (Large File Storage) for large files
+*.h5 filter=lfs diff=lfs merge=lfs -text
+*.hdf5 filter=lfs diff=lfs merge=lfs -text
+*.pkl filter=lfs diff=lfs merge=lfs -text
+*.pickle filter=lfs diff=lfs merge=lfs -text
+*.pt filter=lfs diff=lfs merge=lfs -text
+*.pth filter=lfs diff=lfs merge=lfs -text
+*.model filter=lfs diff=lfs merge=lfs -text
+*.weights filter=lfs diff=lfs merge=lfs -text
+*.parquet filter=lfs diff=lfs merge=lfs -text
+
+# Export-ignore attributes (files not included in git archive)
+.gitignore export-ignore
+.gitattributes export-ignore
+.github/ export-ignore
+.vscode/ export-ignore
+.idea/ export-ignore
+*.test.* export-ignore
+**/tests/ export-ignore
+**/__tests__/ export-ignore

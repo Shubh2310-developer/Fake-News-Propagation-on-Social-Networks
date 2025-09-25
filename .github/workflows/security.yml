@@ -1,0 +1,93 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+  schedule:
+    - cron: "0 3 * * 0" # weekly Sunday scan
+  workflow_dispatch:
+
+jobs:
+  python-security:
+    name: Python Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt bandit safety
+
+      - name: Run Bandit (Python static analysis)
+        run: |
+          cd backend
+          bandit -r app -lll
+
+      - name: Run Safety (Dependency vulnerability check)
+        run: |
+          cd backend
+          safety check -r requirements.txt --full-report
+
+  node-security:
+    name: Node.js Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm install
+
+      - name: Run npm audit
+        run: |
+          cd frontend
+          npm audit --audit-level=moderate
+
+      - name: Run ESLint Security Plugin
+        run: |
+          cd frontend
+          npx eslint . --ext .js,.jsx,.ts,.tsx
+
+  docker-security:
+    name: Docker Image Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Trivy
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: image
+          image-ref: "docker.io/${{ secrets.DOCKER_USERNAME }}/fakenews-backend:latest"
+          format: table
+          exit-code: 1
+          ignore-unfixed: true
+
+  secrets-scan:
+    name: Secrets Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Gitleaks
+        uses: zricethezav/gitleaks-action@v2
+        with:
+          config-path: .github/gitleaks.toml

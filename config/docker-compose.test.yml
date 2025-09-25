@@ -1,0 +1,391 @@
+version: '3.8'
+
+# Test Docker Compose Configuration for Fake News Game Theory
+# ===========================================================
+#
+# This configuration is optimized for automated testing:
+# - Fast startup times for CI/CD pipelines
+# - Isolated test databases and services
+# - Comprehensive test coverage tools
+# - Integration and end-to-end testing support
+# - Test data seeding and cleanup
+# - Test reporting and coverage analysis
+#
+# Usage:
+#   docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
+#
+# Test Services:
+# - backend-test: API and unit tests
+# - frontend-test: Frontend unit and integration tests
+# - e2e-test: End-to-end testing with Playwright/Cypress
+# - test-db: Isolated test database
+# - test-redis: Isolated test cache
+
+services:
+  # =======================
+  # Test Database
+  # =======================
+  test-db:
+    image: postgres:15-alpine
+    restart: no
+    environment:
+      - POSTGRES_USER=test_user
+      - POSTGRES_PASSWORD=test_password
+      - POSTGRES_DB=fakenews_test
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+    volumes:
+      # Test data initialization
+      - ../config/database/test_init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ../data/test/seed:/docker-entrypoint-initdb.d/seed:ro
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d fakenews_test"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+      start_period: 10s
+    tmpfs:
+      - /var/lib/postgresql/data  # Use tmpfs for faster tests
+
+  # =======================
+  # Test Redis
+  # =======================
+  test-redis:
+    image: redis:7-alpine
+    restart: no
+    ports:
+      - "6380:6379"  # Different port to avoid conflicts
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 1s
+      retries: 5
+      start_period: 5s
+    tmpfs:
+      - /data  # Use tmpfs for faster tests
+
+  # =======================
+  # Backend Tests
+  # =======================
+  backend-test:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.test
+      args:
+        - ENVIRONMENT=test
+    environment:
+      # Test database connection
+      - DATABASE_URL=postgresql://test_user:test_password@test-db:5432/fakenews_test
+      - REDIS_URL=redis://test-redis:6379/0
+      # Test-specific settings
+      - TESTING=true
+      - DEBUG=false
+      - SECRET_KEY=test-secret-key-not-secure
+      - LOG_LEVEL=warning
+      # ML test settings (use lightweight models)
+      - USE_MOCK_ML_MODELS=true
+      - ML_MODEL_PATH=/app/test_models
+      - DISABLE_ML_DOWNLOAD=true
+      # Game Theory test settings
+      - SIMULATION_WORKERS=1
+      - MAX_SIMULATION_TIME=10
+      - TEST_TIMEOUT=60
+    volumes:
+      # Test coverage reports
+      - test_coverage:/app/coverage
+      # Test results
+      - test_results:/app/test-results
+      # Mock data and models
+      - ../data/test/models:/app/test_models:ro
+      - ../data/test/fixtures:/app/fixtures:ro
+    depends_on:
+      test-db:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for services to be ready...' &&
+        sleep 5 &&
+        echo 'Running database migrations...' &&
+        alembic upgrade head &&
+        echo 'Seeding test data...' &&
+        python scripts/seed_test_data.py &&
+        echo 'Running unit tests...' &&
+        pytest tests/unit/ -v --cov=app --cov-report=html --cov-report=xml --cov-report=term-missing --junit-xml=/app/test-results/unit-tests.xml &&
+        echo 'Running integration tests...' &&
+        pytest tests/integration/ -v --junit-xml=/app/test-results/integration-tests.xml &&
+        echo 'Running API tests...' &&
+        pytest tests/api/ -v --junit-xml=/app/test-results/api-tests.xml &&
+        echo 'All backend tests completed!'
+      "
+    healthcheck:
+      disable: true
+
+  # =======================
+  # Frontend Tests
+  # =======================
+  frontend-test:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.test
+    environment:
+      - NODE_ENV=test
+      - CI=true
+      - NEXT_PUBLIC_API_URL=http://backend-test-server:8000
+      - GENERATE_SOURCEMAP=false
+    volumes:
+      # Test coverage reports
+      - test_coverage:/app/coverage
+      # Test results
+      - test_results:/app/test-results
+    command: >
+      sh -c "
+        echo 'Running frontend linting...' &&
+        npm run lint &&
+        echo 'Running type checking...' &&
+        npm run type-check &&
+        echo 'Running unit tests...' &&
+        npm test -- --coverage --watchAll=false --reporters=default --reporters=jest-junit --outputFile=/app/test-results/frontend-tests.xml &&
+        echo 'All frontend tests completed!'
+      "
+    healthcheck:
+      disable: true
+
+  # =======================
+  # Backend Test Server (for E2E tests)
+  # =======================
+  backend-test-server:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.test
+    environment:
+      - DATABASE_URL=postgresql://test_user:test_password@test-db:5432/fakenews_test
+      - REDIS_URL=redis://test-redis:6379/0
+      - TESTING=true
+      - DEBUG=true
+      - SECRET_KEY=test-secret-key
+      - CORS_ORIGINS=http://frontend-test-server:3000
+      - USE_MOCK_ML_MODELS=true
+      - ML_MODEL_PATH=/app/test_models
+    volumes:
+      - ../data/test/models:/app/test_models:ro
+    ports:
+      - "8001:8000"
+    depends_on:
+      test-db:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Setting up test server...' &&
+        alembic upgrade head &&
+        python scripts/seed_test_data.py &&
+        echo 'Starting test server...' &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --log-level info
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+      start_period: 30s
+
+  # =======================
+  # Frontend Test Server (for E2E tests)
+  # =======================
+  frontend-test-server:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    environment:
+      - NODE_ENV=test
+      - NEXT_PUBLIC_API_URL=http://backend-test-server:8000
+      - FAST_REFRESH=false
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3001:3000"
+    depends_on:
+      backend-test-server:
+        condition: service_healthy
+    command: npm run dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+      start_period: 30s
+
+  # =======================
+  # End-to-End Tests
+  # =======================
+  e2e-test:
+    build:
+      context: ../e2e
+      dockerfile: Dockerfile
+    environment:
+      - BASE_URL=http://frontend-test-server:3000
+      - API_URL=http://backend-test-server:8000
+      - HEADLESS=true
+      - CI=true
+    volumes:
+      # Test results and screenshots
+      - test_results:/app/test-results
+      - e2e_screenshots:/app/screenshots
+      - e2e_videos:/app/videos
+    depends_on:
+      frontend-test-server:
+        condition: service_healthy
+      backend-test-server:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for services to be ready...' &&
+        sleep 10 &&
+        echo 'Running end-to-end tests...' &&
+        npx playwright test --reporter=junit --output-file=/app/test-results/e2e-tests.xml &&
+        echo 'End-to-end tests completed!'
+      "
+    healthcheck:
+      disable: true
+
+  # =======================
+  # Load Testing
+  # =======================
+  load-test:
+    image: locustio/locust:latest
+    environment:
+      - LOCUST_HOST=http://backend-test-server:8000
+      - LOCUST_USERS=50
+      - LOCUST_SPAWN_RATE=5
+      - LOCUST_RUN_TIME=2m
+      - LOCUST_HEADLESS=true
+      - LOCUST_CSV=/app/test-results/load-test
+    volumes:
+      - ../tests/load:/mnt/locust:ro
+      - test_results:/app/test-results
+    depends_on:
+      backend-test-server:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Running load tests...' &&
+        locust -f /mnt/locust/locustfile.py --headless -u $$LOCUST_USERS -r $$LOCUST_SPAWN_RATE -t $$LOCUST_RUN_TIME --csv=$$LOCUST_CSV &&
+        echo 'Load tests completed!'
+      "
+    healthcheck:
+      disable: true
+
+  # =======================
+  # Security Testing
+  # =======================
+  security-test:
+    build:
+      context: ../tests/security
+      dockerfile: Dockerfile
+    environment:
+      - TARGET_URL=http://backend-test-server:8000
+      - FRONTEND_URL=http://frontend-test-server:3000
+    volumes:
+      - test_results:/app/test-results
+    depends_on:
+      backend-test-server:
+        condition: service_healthy
+      frontend-test-server:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Running security tests...' &&
+        python security_tests.py --target $$TARGET_URL --output /app/test-results/security-report.json &&
+        echo 'Security tests completed!'
+      "
+    healthcheck:
+      disable: true
+
+  # =======================
+  # Test Results Collector
+  # =======================
+  test-collector:
+    image: alpine:latest
+    volumes:
+      - test_coverage:/test-coverage
+      - test_results:/test-results
+      - ../test-reports:/output
+    command: >
+      sh -c "
+        echo 'Collecting test results...' &&
+        cp -r /test-coverage/* /output/ 2>/dev/null || true &&
+        cp -r /test-results/* /output/ 2>/dev/null || true &&
+        echo 'Test results collected in ./test-reports/'
+      "
+    depends_on:
+      - backend-test
+      - frontend-test
+      - e2e-test
+    healthcheck:
+      disable: true
+
+# =======================
+# Test Volumes
+# =======================
+volumes:
+  # Test coverage reports
+  test_coverage:
+    driver: local
+
+  # Test results (JUnit XML, etc.)
+  test_results:
+    driver: local
+
+  # E2E test artifacts
+  e2e_screenshots:
+    driver: local
+
+  e2e_videos:
+    driver: local
+
+# =======================
+# Test Networks
+# =======================
+networks:
+  default:
+    name: fake-news-game-theory-test-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.23.0.0/16
+
+# =======================
+# Test Environment Configuration
+# =======================
+# Test execution flow:
+# 1. Start test database and Redis
+# 2. Run backend unit/integration tests
+# 3. Run frontend unit tests
+# 4. Start test servers for E2E
+# 5. Run E2E tests with Playwright
+# 6. Run load tests with Locust
+# 7. Run security tests
+# 8. Collect all test results
+#
+# Test result locations:
+# - Coverage reports: ./test-reports/coverage/
+# - Unit test results: ./test-reports/unit-tests.xml
+# - Integration test results: ./test-reports/integration-tests.xml
+# - E2E test results: ./test-reports/e2e-tests.xml
+# - Load test results: ./test-reports/load-test.csv
+# - Security report: ./test-reports/security-report.json
+# - Screenshots: ./test-reports/screenshots/
+# - Videos: ./test-reports/videos/
+#
+# CI/CD Integration:
+# This configuration is designed to work with CI/CD pipelines:
+# - All tests run in parallel where possible
+# - Results are exported in standard formats (JUnit XML, coverage)
+# - Fast cleanup with tmpfs for databases
+# - Comprehensive test coverage for all components

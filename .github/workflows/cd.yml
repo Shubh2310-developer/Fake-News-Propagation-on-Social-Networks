@@ -1,0 +1,52 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # allow manual trigger
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ---------------------------
+      # 1. Build & Push Docker Images
+      # ---------------------------
+      - name: Log in to Docker Registry
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Backend Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/fakenews-backend:latest ./backend
+          docker push ${{ secrets.DOCKER_USERNAME }}/fakenews-backend:latest
+
+      - name: Build and Push Frontend Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/fakenews-frontend:latest ./frontend
+          docker push ${{ secrets.DOCKER_USERNAME }}/fakenews-frontend:latest
+
+      # ---------------------------
+      # 2. Deploy to Server
+      # ---------------------------
+      - name: SSH into server and deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ~/fake-news-game-theory
+            git pull origin main
+            docker compose pull
+            docker compose up -d
+            docker system prune -af
