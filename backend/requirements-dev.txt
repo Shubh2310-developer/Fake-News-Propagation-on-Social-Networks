@@ -1,0 +1,71 @@
+# Include production dependencies
+-r requirements.txt
+
+# Testing & Coverage
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+pytest-cov>=4.1.0
+pytest-mock>=3.11.1
+pytest-xdist>=3.3.1
+pytest-benchmark>=4.0.0
+coverage>=7.3.2
+factory-boy>=3.3.0
+faker>=19.12.0
+
+# Code Quality & Linting
+black>=23.10.1
+isort>=5.12.0
+flake8>=6.1.0
+mypy>=1.7.0
+pre-commit>=3.5.0
+bandit>=1.7.5
+
+# Documentation
+sphinx>=7.2.6
+sphinx-rtd-theme>=1.3.0
+sphinx-autodoc-typehints>=1.24.0
+
+# Development Tools
+ipython>=8.17.2
+jupyter>=1.0.0
+notebook>=7.0.6
+ipykernel>=6.26.0
+
+# Debugging & Profiling
+ipdb>=0.13.13
+memory-profiler>=0.61.0
+line-profiler>=4.1.1
+py-spy>=0.3.14
+
+# Database Development
+alembic>=1.12.1
+psycopg2-binary>=2.9.9
+
+# API Development & Testing
+httpx>=0.26.0
+requests-mock>=1.11.0
+
+# Performance & Load Testing
+locust>=2.17.0
+
+# Environment & Configuration
+python-dotenv>=1.0.0
+
+# Type Checking
+types-requests>=2.31.0.10
+types-PyYAML>=6.0.12.12
+
+# Additional ML Development Tools
+matplotlib>=3.8.1
+seaborn>=0.13.0
+plotly>=5.17.0
+tensorboard>=2.15.1
+wandb>=0.16.0
+
+# Jupyter Extensions
+jupyterlab>=4.0.8
+jupyterlab-git>=0.44.0
+
+# Development Utilities
+watchdog>=3.0.0
+python-multipart>=0.0.6
