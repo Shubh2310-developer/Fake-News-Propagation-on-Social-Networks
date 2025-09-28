@@ -1,0 +1,208 @@
+---
+# Storage Class for SSD storage
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd
+  labels:
+    app: fake-news-platform
+provisioner: kubernetes.io/aws-ebs  # Change based on your cloud provider
+parameters:
+  type: gp3
+  fsType: ext4
+  encrypted: "true"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+
+---
+# Storage Class for standard storage
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: standard-storage
+  labels:
+    app: fake-news-platform
+provisioner: kubernetes.io/aws-ebs  # Change based on your cloud provider
+parameters:
+  type: gp2
+  fsType: ext4
+  encrypted: "true"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+
+---
+# PostgreSQL Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  labels:
+    app: postgres
+    component: database
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+# Redis Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  labels:
+    app: redis
+    component: cache
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+# Model Storage Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: model-storage-pvc
+  labels:
+    app: fake-news-backend
+    component: model-storage
+spec:
+  accessModes:
+    - ReadWriteMany  # Multiple pods can read models
+  storageClassName: standard-storage
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+# Data Storage Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-storage-pvc
+  labels:
+    app: fake-news-backend
+    component: data-storage
+spec:
+  accessModes:
+    - ReadWriteMany  # Multiple pods can access training data
+  storageClassName: standard-storage
+  resources:
+    requests:
+      storage: 200Gi
+
+---
+# Backup Storage Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-storage-pvc
+  labels:
+    app: fake-news-platform
+    component: backup
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard-storage
+  resources:
+    requests:
+      storage: 500Gi
+
+---
+# Monitoring Data Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: monitoring-data-pvc
+  labels:
+    app: fake-news-platform
+    component: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+# Logs Storage Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: logs-storage-pvc
+  labels:
+    app: fake-news-platform
+    component: logs
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: standard-storage
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+# Shared File System for ML workloads (NFS/EFS)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: shared-ml-storage
+  labels:
+    app: fake-news-platform
+    component: ml-storage
+spec:
+  capacity:
+    storage: 1Ti
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  # For AWS EFS
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: fs-0123456789abcdef0  # Replace with your EFS ID
+  # For NFS
+  # nfs:
+  #   server: nfs-server.example.com
+  #   path: /path/to/shared/storage
+
+---
+# Shared ML Storage Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shared-ml-storage-pvc
+  labels:
+    app: fake-news-platform
+    component: ml-storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: shared-ml-storage
+  resources:
+    requests:
+      storage: 1Ti
+
+---
+# Snapshot Class for backup purposes
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: ebs-csi-snapclass
+  labels:
+    app: fake-news-platform
+driver: ebs.csi.aws.com
+deletionPolicy: Retain
+parameters:
+  encrypted: "true"

@@ -1,0 +1,36 @@
+---
+# Namespace for staging environment
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fakenews-staging
+  labels:
+    name: fakenews-staging
+    environment: staging
+    app: fake-news-game-theory
+  annotations:
+    description: "Staging environment for fake news game theory platform"
+---
+# Namespace for production environment
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fakenews-production
+  labels:
+    name: fakenews-production
+    environment: production
+    app: fake-news-game-theory
+  annotations:
+    description: "Production environment for fake news game theory platform"
+---
+# Namespace for monitoring and observability
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fakenews-monitoring
+  labels:
+    name: fakenews-monitoring
+    environment: shared
+    app: fake-news-game-theory
+  annotations:
+    description: "Monitoring and observability for fake news platform"

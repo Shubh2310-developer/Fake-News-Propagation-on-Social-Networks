@@ -8,6 +8,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Only run if secrets are available
+    if: ${{ secrets.DOCKER_USERNAME != '' && secrets.SERVER_HOST != '' }}
 
     steps:
       - name: Checkout code
@@ -17,6 +19,7 @@ jobs:
       # 1. Build & Push Docker Images
       # ---------------------------
       - name: Log in to Docker Registry
+        if: ${{ secrets.DOCKER_USERNAME != '' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -26,11 +29,13 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and Push Backend Image
+        if: ${{ secrets.DOCKER_USERNAME != '' }}
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/fakenews-backend:latest ./backend
           docker push ${{ secrets.DOCKER_USERNAME }}/fakenews-backend:latest
 
       - name: Build and Push Frontend Image
+        if: ${{ secrets.DOCKER_USERNAME != '' }}
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/fakenews-frontend:latest ./frontend
           docker push ${{ secrets.DOCKER_USERNAME }}/fakenews-frontend:latest
@@ -39,6 +44,7 @@ jobs:
       # 2. Deploy to Server
       # ---------------------------
       - name: SSH into server and deploy
+        if: ${{ secrets.SERVER_HOST != '' }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -50,3 +56,32 @@ jobs:
             docker compose pull
             docker compose up -d
             docker system prune -af
+
+  # Alternative job for when secrets are not available
+  build-only:
+    runs-on: ubuntu-latest
+    # Only run if secrets are NOT available
+    if: ${{ secrets.DOCKER_USERNAME == '' || secrets.SERVER_HOST == '' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Images (no push)
+        run: |
+          echo "Building images for validation (no deployment secrets available)"
+          docker build -t fakenews-backend:latest ./backend
+          docker build -t fakenews-frontend:latest ./frontend
+
+      - name: Deployment Status
+        run: |
+          echo "✅ Build completed successfully"
+          echo "⚠️  Deployment skipped - missing required secrets:"
+          echo "   - DOCKER_USERNAME"
+          echo "   - DOCKER_PASSWORD"
+          echo "   - SERVER_HOST"
+          echo "   - SERVER_USER"
+          echo "   - SERVER_SSH_KEY"

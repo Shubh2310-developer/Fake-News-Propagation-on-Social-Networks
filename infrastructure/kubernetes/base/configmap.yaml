@@ -1,0 +1,284 @@
+---
+# Backend Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  labels:
+    app: fake-news-backend
+    component: backend
+data:
+  # Application settings
+  environment: "production"
+  log-level: "INFO"
+  api-token-expire-hours: "24"
+
+  # API settings
+  api-host: "0.0.0.0"
+  api-port: "8000"
+  api-workers: "4"
+
+  # Machine Learning settings
+  model-cache-size: "100"
+  max-text-length: "10000"
+  batch-size: "32"
+
+  # Simulation settings
+  max-simulation-nodes: "10000"
+  max-parallel-simulations: "10"
+  simulation-timeout: "300"
+
+  # Cache settings
+  cache-ttl: "3600"
+  cache-max-size: "1000"
+
+---
+# Frontend Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  labels:
+    app: fake-news-frontend
+    component: frontend
+data:
+  # Next.js settings
+  node-env: "production"
+  app-name: "Fake News Game Theory Platform"
+
+  # API endpoints
+  api-url: "https://api.fake-news-platform.com"
+  websocket-url: "wss://api.fake-news-platform.com/ws"
+
+  # UI settings
+  default-theme: "light"
+  enable-analytics: "true"
+  max-upload-size: "10485760"  # 10MB
+
+---
+# PostgreSQL Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  labels:
+    app: postgres
+    component: database
+data:
+  database-name: "fake_news_db"
+  max-connections: "100"
+  shared-buffers: "256MB"
+  effective-cache-size: "1GB"
+
+---
+# PostgreSQL Initialization Scripts
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  labels:
+    app: postgres
+    component: database
+data:
+  01-init-db.sql: |
+    -- Create extensions
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+    CREATE EXTENSION IF NOT EXISTS "btree_gin";
+
+    -- Create database user for application
+    CREATE USER app_user WITH PASSWORD 'secure_password_from_secret';
+    GRANT ALL PRIVILEGES ON DATABASE fake_news_db TO app_user;
+
+    -- Create initial tables (basic structure)
+    CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS articles (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        label INTEGER NOT NULL, -- 0 = real, 1 = fake
+        source VARCHAR(255),
+        domain VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS simulations (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        name VARCHAR(255) NOT NULL,
+        parameters JSONB NOT NULL,
+        results JSONB,
+        status VARCHAR(50) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        completed_at TIMESTAMP
+    );
+
+    -- Create indexes
+    CREATE INDEX IF NOT EXISTS idx_articles_label ON articles(label);
+    CREATE INDEX IF NOT EXISTS idx_articles_domain ON articles(domain);
+    CREATE INDEX IF NOT EXISTS idx_articles_created_at ON articles(created_at);
+    CREATE INDEX IF NOT EXISTS idx_simulations_status ON simulations(status);
+    CREATE INDEX IF NOT EXISTS idx_simulations_created_at ON simulations(created_at);
+
+---
+# Redis Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  labels:
+    app: redis
+    component: cache
+data:
+  redis.conf: |
+    # Redis configuration for Kubernetes
+
+    # Network settings
+    bind 0.0.0.0
+    port 6379
+    tcp-keepalive 300
+
+    # Memory settings
+    maxmemory 256mb
+    maxmemory-policy allkeys-lru
+
+    # Persistence settings
+    save 900 1
+    save 300 10
+    save 60 10000
+
+    # Security
+    requirepass ${REDIS_PASSWORD}
+
+    # Logging
+    loglevel notice
+    logfile ""
+
+    # Client settings
+    timeout 300
+    tcp-keepalive 300
+
+    # Performance
+    databases 16
+    hz 10
+
+---
+# NGINX Configuration for Ingress
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  labels:
+    app: nginx-ingress
+    component: ingress
+data:
+  # Custom NGINX configuration
+  proxy-connect-timeout: "5s"
+  proxy-send-timeout: "60s"
+  proxy-read-timeout: "60s"
+  proxy-buffering: "on"
+  proxy-buffer-size: "4k"
+  proxy-buffers: "8 4k"
+
+  # Gzip compression
+  use-gzip: "true"
+  gzip-level: "6"
+  gzip-types: "application/json application/javascript text/css text/plain text/xml"
+
+  # Security
+  server-tokens: "false"
+  hide-headers: "Server,X-Powered-By"
+
+  # SSL settings
+  ssl-protocols: "TLSv1.2 TLSv1.3"
+  ssl-ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384"
+  ssl-prefer-server-ciphers: "true"
+
+---
+# Application Monitoring Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitoring-config
+  labels:
+    app: fake-news-platform
+    component: monitoring
+data:
+  # Prometheus scrape configuration
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    rule_files:
+      - "alerts.yml"
+
+    scrape_configs:
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+        - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+          action: keep
+          regex: default;kubernetes;https
+
+      - job_name: 'fake-news-backend'
+        kubernetes_sd_configs:
+        - role: endpoints
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_service_label_app]
+          action: keep
+          regex: fake-news-backend
+        - source_labels: [__address__]
+          target_label: __address__
+          regex: ([^:]+)(?::\d+)?
+          replacement: ${1}:8000
+
+      - job_name: 'fake-news-frontend'
+        kubernetes_sd_configs:
+        - role: endpoints
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_service_label_app]
+          action: keep
+          regex: fake-news-frontend
+
+  # Alert rules
+  alerts.yml: |
+    groups:
+    - name: fake-news-platform
+      rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} for {{ $labels.instance }}"
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency detected"
+          description: "95th percentile latency is {{ $value }}s for {{ $labels.instance }}"
+
+      - alert: PodCrashLooping
+        expr: increase(kube_pod_container_status_restarts_total[1h]) > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pod is crash looping"
+          description: "Pod {{ $labels.pod }} in {{ $labels.namespace }} is crash looping"

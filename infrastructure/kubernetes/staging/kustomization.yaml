@@ -1,0 +1,65 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: fake-news-staging
+
+# Base configuration to build upon
+bases:
+- ../base
+
+# Namespace for staging environment
+namespace: fakenews-staging
+
+# Common labels for all staging resources
+commonLabels:
+  environment: staging
+  app: fake-news-game-theory
+
+# Prefix for resource names
+namePrefix: staging-
+
+# Resource modifications for staging
+patchesStrategicMerge:
+- deployment-patch.yaml
+- service-patch.yaml
+- ingress-patch.yaml
+
+# ConfigMap and Secret generators
+configMapGenerator:
+- name: staging-config
+  literals:
+  - environment=staging
+  - log_level=DEBUG
+  - api_workers=2
+  - enable_debug=true
+
+secretGenerator:
+- name: staging-secrets
+  literals:
+  - database_url=postgresql://staging_user:staging_pass@postgres-service:5432/staging_db
+  - redis_url=redis://:staging_pass@redis-service:6379
+  - secret_key=staging-secret-key-not-for-production
+
+# Resource scaling for staging
+replicas:
+- name: fake-news-backend
+  count: 2
+- name: fake-news-frontend
+  count: 1
+
+# Images for staging (can be different tags)
+images:
+- name: fake-news-backend
+  newTag: staging-latest
+- name: fake-news-frontend
+  newTag: staging-latest
+
+# Resource patches
+patchesJson6902:
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: fake-news-backend
+  path: resource-limits-patch.yaml

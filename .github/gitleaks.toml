@@ -1,0 +1,9 @@
+# Gitleaks configuration for secret detection
+
+[allowlist]
+description = "Global allowlist"
+regexes = ['''SECRET_KEY = "demo_secret_key"''']
+
+[extend]
+# Common configurations
+useDefault = true
