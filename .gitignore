@@ -384,3 +384,21 @@ dev_settings.py
 !frontend/public/**
 !assets/images/architecture-diagram.png
 !assets/images/game-theory-flowchart.svg
+
+# Infrastructure specific
+infrastructure/kubernetes/*/secrets-real.yaml
+infrastructure/kubernetes/secrets/
+kubeconfig*
+*.kubeconfig
+
+# Deployment outputs
+deployment-*.yaml
+k8s-manifests-*.yaml
+
+# Monitoring data
+monitoring/data/
+grafana/data/
+prometheus/data/
+
+# CI/CD
+.github/workflows/secrets.yml

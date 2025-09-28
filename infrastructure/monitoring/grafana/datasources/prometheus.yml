@@ -1,0 +1,102 @@
+# =============================================================================
+# Grafana Datasources Configuration
+# =============================================================================
+# This file automatically configures Prometheus as a datasource when Grafana starts
+
+apiVersion: 1
+
+# List of datasources to insert/update depending on what's available in the database
+datasources:
+  # Primary Prometheus datasource
+  - name: Prometheus
+    type: prometheus
+    # Internal Kubernetes service DNS name
+    url: http://prometheus-server.fakenews-monitoring.svc.cluster.local:9090
+    access: proxy
+    orgId: 1
+    isDefault: true
+    basicAuth: false
+    withCredentials: false
+    editable: true
+    # Health check configuration
+    jsonData:
+      httpMethod: POST
+      queryTimeout: 60s
+      timeInterval: 15s
+      # Enable Grafana to discover metrics and labels
+      manageAlerts: true
+      alertmanagerUid: alertmanager
+      # Custom headers
+      customQueryParameters: ''
+      # Prometheus-specific settings
+      prometheusType: Prometheus
+      prometheusVersion: 2.40.0
+      cacheLevel: High
+      incrementalQuerying: false
+      disableMetricsLookup: false
+      # Recording rules and exemplars
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: jaeger
+    version: 1
+
+  # Alertmanager datasource for alert management
+  - name: Alertmanager
+    type: alertmanager
+    uid: alertmanager
+    url: http://alertmanager.fakenews-monitoring.svc.cluster.local:9093
+    access: proxy
+    orgId: 1
+    basicAuth: false
+    withCredentials: false
+    editable: true
+    jsonData:
+      implementation: prometheus
+      handleGrafanaManagedAlerts: true
+    version: 1
+
+  # Long-term storage (if using Thanos or similar)
+  - name: Prometheus-LongTerm
+    type: prometheus
+    url: http://thanos-query.fakenews-monitoring.svc.cluster.local:9090
+    access: proxy
+    orgId: 1
+    basicAuth: false
+    withCredentials: false
+    editable: true
+    # This datasource is for historical data (>30 days)
+    jsonData:
+      httpMethod: POST
+      queryTimeout: 300s
+      timeInterval: 15s
+      prometheusType: Thanos
+      prometheusVersion: 0.30.0
+      # Longer timeout for historical queries
+      cacheLevel: Medium
+    version: 1
+
+  # CloudWatch for AWS native metrics (optional)
+  - name: CloudWatch
+    type: cloudwatch
+    uid: cloudwatch
+    access: proxy
+    orgId: 1
+    editable: true
+    jsonData:
+      authType: default
+      defaultRegion: us-west-2
+      # Assume role for cross-account access if needed
+      assumeRoleArn: ''
+      # Custom namespace for application metrics
+      customMetricsNamespaces: 'FakeNews/Application,FakeNews/Business'
+    version: 1
+
+  # TestData datasource for dashboard development and testing
+  - name: TestData
+    type: testdata
+    uid: testdata
+    access: proxy
+    orgId: 1
+    editable: true
+    jsonData: {}
+    version: 1

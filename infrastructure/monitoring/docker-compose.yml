@@ -1,0 +1,272 @@
+# =============================================================================
+# Docker Compose for Local Monitoring Stack Development
+# =============================================================================
+# This compose file sets up the complete monitoring stack for local development
+# and testing before deploying to Kubernetes.
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Prometheus - Metrics Collection
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: fake-news-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=50GB'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--log.level=info'
+    environment:
+      - ENVIRONMENT=development
+      - AWS_REGION=us-west-2
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - monitoring
+
+  # =============================================================================
+  # Grafana - Visualization and Dashboards
+  # =============================================================================
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: fake-news-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    environment:
+      # Admin user
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+
+      # Server settings
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=grafana-kubernetes-app,grafana-piechart-panel
+
+      # Database settings (using built-in SQLite for development)
+      - GF_DATABASE_TYPE=sqlite3
+      - GF_DATABASE_PATH=/var/lib/grafana/grafana.db
+
+      # Analytics and updates
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+
+      # Auth settings
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_AUTH_BASIC_ENABLED=true
+
+      # Logging
+      - GF_LOG_LEVEL=info
+
+      # Alerting
+      - GF_ALERTING_ENABLED=true
+      - GF_UNIFIED_ALERTING_ENABLED=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+
+  # =============================================================================
+  # Alertmanager - Alert Routing and Notifications
+  # =============================================================================
+  alertmanager:
+    image: prom/alertmanager:v0.25.0
+    container_name: fake-news-alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+      - '--log.level=info'
+    environment:
+      # These would be actual secrets in production
+      - SMTP_PASSWORD=fake-password
+      - SLACK_WEBHOOK_URL=https://hooks.slack.com/services/fake/webhook/url
+      - PAGERDUTY_INTEGRATION_KEY=fake-pagerduty-key
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - monitoring
+
+  # =============================================================================
+  # Node Exporter - System Metrics
+  # =============================================================================
+  node-exporter:
+    image: prom/node-exporter:v1.6.0
+    container_name: fake-news-node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--collector.textfile.directory=/var/lib/node_exporter/textfile_collector'
+    networks:
+      - monitoring
+
+  # =============================================================================
+  # Redis Exporter - Cache Metrics
+  # =============================================================================
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.52.0
+    container_name: fake-news-redis-exporter
+    restart: unless-stopped
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis://localhost:6379
+      - REDIS_EXPORTER_LOG_FORMAT=json
+    command:
+      - '--redis.addr=redis://redis:6379'
+      - '--log-format=json'
+    depends_on:
+      - redis
+    networks:
+      - monitoring
+
+  # =============================================================================
+  # Blackbox Exporter - Endpoint Health Checks
+  # =============================================================================
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.24.0
+    container_name: fake-news-blackbox-exporter
+    restart: unless-stopped
+    ports:
+      - "9115:9115"
+    volumes:
+      - ./blackbox:/etc/blackbox_exporter:ro
+    command:
+      - '--config.file=/etc/blackbox_exporter/config.yml'
+      - '--log.level=info'
+    networks:
+      - monitoring
+
+  # =============================================================================
+  # Supporting Services for Complete Demo
+  # =============================================================================
+
+  # Redis - for cache metrics demonstration
+  redis:
+    image: redis:7-alpine
+    container_name: fake-news-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - monitoring
+
+  # PostgreSQL - for database metrics demonstration
+  postgres:
+    image: postgres:15-alpine
+    container_name: fake-news-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=fake_news_db
+      - POSTGRES_USER=app_user
+      - POSTGRES_PASSWORD=development_password
+    networks:
+      - monitoring
+
+  # Postgres Exporter - Database metrics
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.13.2
+    container_name: fake-news-postgres-exporter
+    restart: unless-stopped
+    ports:
+      - "9187:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://app_user:development_password@postgres:5432/fake_news_db?sslmode=disable
+      - PG_EXPORTER_EXTEND_QUERY_PATH=/etc/postgres_exporter/queries.yaml
+    depends_on:
+      - postgres
+    networks:
+      - monitoring
+
+  # =============================================================================
+  # Fake Application for Metrics Demo
+  # =============================================================================
+
+  # Mock application that generates metrics
+  mock-app:
+    image: nginx:alpine
+    container_name: fake-news-mock-app
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./mock-app/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./mock-app/index.html:/usr/share/nginx/html/index.html:ro
+    networks:
+      - monitoring
+
+# =============================================================================
+# Named Volumes for Data Persistence
+# =============================================================================
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  alertmanager_data:
+    driver: local
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  monitoring:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

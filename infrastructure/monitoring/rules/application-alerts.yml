@@ -1,0 +1,361 @@
+# =============================================================================
+# Application Alerting Rules for Fake News Game Theory Platform
+# =============================================================================
+# These rules define when to fire alerts based on application metrics,
+# covering the golden signals and business-critical thresholds.
+
+groups:
+  # =============================================================================
+  # Golden Signals Alerts
+  # =============================================================================
+  - name: golden-signals
+    interval: 30s
+    rules:
+      # High Error Rate Alert
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m])) by (service, environment) /
+            sum(rate(http_requests_total[5m])) by (service, environment)
+          ) * 100 > 5
+        for: 2m
+        labels:
+          severity: warning
+          component: application
+          team: platform
+        annotations:
+          summary: "High error rate detected for {{ $labels.service }}"
+          description: |
+            Service {{ $labels.service }} in {{ $labels.environment }} has a 5xx error rate of {{ $value | humanizePercentage }}.
+            This is above the 5% threshold for 2 minutes.
+
+      # Critical Error Rate Alert
+      - alert: CriticalErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m])) by (service, environment) /
+            sum(rate(http_requests_total[5m])) by (service, environment)
+          ) * 100 > 10
+        for: 1m
+        labels:
+          severity: critical
+          component: application
+          team: platform
+        annotations:
+          summary: "Critical error rate detected for {{ $labels.service }}"
+          description: |
+            Service {{ $labels.service }} in {{ $labels.environment }} has a 5xx error rate of {{ $value | humanizePercentage }}.
+            This is above the critical 10% threshold. Immediate action required.
+
+      # High Latency Alert
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (service, environment, le)
+          ) * 1000 > 500
+        for: 5m
+        labels:
+          severity: warning
+          component: application
+          team: platform
+        annotations:
+          summary: "High latency detected for {{ $labels.service }}"
+          description: |
+            Service {{ $labels.service }} in {{ $labels.environment }} has 95th percentile latency of {{ $value }}ms.
+            This is above the 500ms threshold for 5 minutes.
+
+      # Critical Latency Alert
+      - alert: CriticalLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (service, environment, le)
+          ) * 1000 > 2000
+        for: 2m
+        labels:
+          severity: critical
+          component: application
+          team: platform
+        annotations:
+          summary: "Critical latency detected for {{ $labels.service }}"
+          description: |
+            Service {{ $labels.service }} in {{ $labels.environment }} has 95th percentile latency of {{ $value }}ms.
+            This is above the critical 2000ms threshold. User experience severely impacted.
+
+      # Low Traffic Alert (potential issue)
+      - alert: LowTraffic
+        expr: |
+          sum(rate(http_requests_total[5m])) by (service, environment) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          component: application
+          team: platform
+        annotations:
+          summary: "Unusually low traffic for {{ $labels.service }}"
+          description: |
+            Service {{ $labels.service }} in {{ $labels.environment }} is receiving only {{ $value | humanize }} requests/sec.
+            This might indicate a problem with load balancing or service discovery.
+
+  # =============================================================================
+  # Application Health Alerts
+  # =============================================================================
+  - name: application-health
+    interval: 30s
+    rules:
+      # Service Down Alert
+      - alert: ServiceDown
+        expr: up{job=~"fake-news-.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: application
+          team: platform
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: |
+            Service {{ $labels.job }} on instance {{ $labels.instance }} has been down for more than 1 minute.
+            Environment: {{ $labels.environment }}
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            container_memory_working_set_bytes{container!="POD",container!=""} /
+            container_spec_memory_limit_bytes{container!="POD",container!=""}
+          ) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+          team: platform
+        annotations:
+          summary: "High memory usage in container {{ $labels.container }}"
+          description: |
+            Container {{ $labels.container }} in pod {{ $labels.pod }} (namespace: {{ $labels.namespace }})
+            is using {{ $value | humanizePercentage }} of its memory limit.
+
+      # Critical Memory Usage
+      - alert: CriticalMemoryUsage
+        expr: |
+          (
+            container_memory_working_set_bytes{container!="POD",container!=""} /
+            container_spec_memory_limit_bytes{container!="POD",container!=""}
+          ) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          component: infrastructure
+          team: platform
+        annotations:
+          summary: "Critical memory usage in container {{ $labels.container }}"
+          description: |
+            Container {{ $labels.container }} in pod {{ $labels.pod }} (namespace: {{ $labels.namespace }})
+            is using {{ $value | humanizePercentage }} of its memory limit. Risk of OOM kill.
+
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: |
+          (
+            rate(container_cpu_usage_seconds_total{container!="POD",container!=""}[5m]) /
+            container_spec_cpu_quota{container!="POD",container!=""} *
+            container_spec_cpu_period{container!="POD",container!=""}
+          ) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+          team: platform
+        annotations:
+          summary: "High CPU usage in container {{ $labels.container }}"
+          description: |
+            Container {{ $labels.container }} in pod {{ $labels.pod }} (namespace: {{ $labels.namespace }})
+            is using {{ $value | humanizePercentage }} of its CPU limit for 10 minutes.
+
+      # Pod Crash Looping
+      - alert: PodCrashLooping
+        expr: |
+          rate(kube_pod_container_status_restarts_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: infrastructure
+          team: platform
+        annotations:
+          summary: "Pod {{ $labels.pod }} is crash looping"
+          description: |
+            Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is restarting frequently.
+            Container {{ $labels.container }} has restarted {{ $value }} times in the last 5 minutes.
+
+  # =============================================================================
+  # Business Logic Alerts
+  # =============================================================================
+  - name: business-alerts
+    interval: 1m
+    rules:
+      # Low Model Accuracy
+      - alert: LowModelAccuracy
+        expr: |
+          avg(model_accuracy) by (model_type, environment) * 100 < 75
+        for: 5m
+        labels:
+          severity: warning
+          component: ml-model
+          team: data-science
+        annotations:
+          summary: "Low accuracy for {{ $labels.model_type }} model"
+          description: |
+            ML model {{ $labels.model_type }} in {{ $labels.environment }} has accuracy of {{ $value | humanizePercentage }}.
+            This is below the 75% threshold and may impact classification quality.
+
+      # Critical Model Accuracy
+      - alert: CriticalModelAccuracy
+        expr: |
+          avg(model_accuracy) by (model_type, environment) * 100 < 60
+        for: 2m
+        labels:
+          severity: critical
+          component: ml-model
+          team: data-science
+        annotations:
+          summary: "Critical accuracy drop for {{ $labels.model_type }} model"
+          description: |
+            ML model {{ $labels.model_type }} in {{ $labels.environment }} has accuracy of {{ $value | humanizePercentage }}.
+            This is critically low and requires immediate attention.
+
+      # High Prediction Errors
+      - alert: HighPredictionErrors
+        expr: |
+          rate(classifier_prediction_errors_total[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+          component: ml-model
+          team: data-science
+        annotations:
+          summary: "High prediction error rate"
+          description: |
+            Classifier is generating {{ $value | humanize }} prediction errors per second.
+            This may indicate issues with input data quality or model performance.
+
+      # Simulation Failures
+      - alert: HighSimulationFailures
+        expr: |
+          (
+            rate(simulations_failed_total[5m]) /
+            rate(simulations_run_total[5m])
+          ) * 100 > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: game-theory
+          team: platform
+        annotations:
+          summary: "High simulation failure rate"
+          description: |
+            Game theory simulations are failing at a rate of {{ $value | humanizePercentage }}.
+            This is above the 10% threshold and may impact user experience.
+
+      # No Recent Predictions
+      - alert: NoPredictions
+        expr: |
+          increase(classifier_predictions_total[10m]) == 0
+        for: 10m
+        labels:
+          severity: warning
+          component: ml-model
+          team: data-science
+        annotations:
+          summary: "No classifier predictions in {{ $labels.environment }}"
+          description: |
+            No classifier predictions have been made in the last 10 minutes in {{ $labels.environment }}.
+            This may indicate an issue with the prediction pipeline.
+
+  # =============================================================================
+  # Data Processing Alerts
+  # =============================================================================
+  - name: data-processing
+    interval: 1m
+    rules:
+      # High Queue Size
+      - alert: HighQueueSize
+        expr: |
+          data_processing_queue_size > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: data-pipeline
+          team: platform
+        annotations:
+          summary: "High queue size for {{ $labels.queue_type }}"
+          description: |
+            Data processing queue {{ $labels.queue_type }} has {{ $value }} items pending.
+            This may indicate processing bottlenecks or increased load.
+
+      # Critical Queue Size
+      - alert: CriticalQueueSize
+        expr: |
+          data_processing_queue_size > 5000
+        for: 2m
+        labels:
+          severity: critical
+          component: data-pipeline
+          team: platform
+        annotations:
+          summary: "Critical queue size for {{ $labels.queue_type }}"
+          description: |
+            Data processing queue {{ $labels.queue_type }} has {{ $value }} items pending.
+            System may be overwhelmed and require immediate scaling.
+
+      # Slow Processing
+      - alert: SlowDataProcessing
+        expr: |
+          avg(data_processing_duration_seconds) by (stage) > 30
+        for: 10m
+        labels:
+          severity: warning
+          component: data-pipeline
+          team: platform
+        annotations:
+          summary: "Slow data processing in stage {{ $labels.stage }}"
+          description: |
+            Data processing stage {{ $labels.stage }} is taking {{ $value | humanizeDuration }} on average.
+            This is above the 30-second threshold and may impact overall system performance.
+
+  # =============================================================================
+  # User Experience Alerts
+  # =============================================================================
+  - name: user-experience
+    interval: 2m
+    rules:
+      # Low User Engagement
+      - alert: LowUserEngagement
+        expr: |
+          rate(user_interactions_total[10m]) < 0.5
+        for: 15m
+        labels:
+          severity: info
+          component: application
+          team: product
+        annotations:
+          summary: "Low user engagement detected"
+          description: |
+            User interaction rate has dropped to {{ $value | humanize }} interactions/sec.
+            This may indicate UX issues or reduced user interest.
+
+      # High Session Abandonment
+      - alert: HighSessionAbandonment
+        expr: |
+          (
+            rate(user_sessions_abandoned_total[10m]) /
+            rate(user_sessions_total[10m])
+          ) * 100 > 20
+        for: 10m
+        labels:
+          severity: warning
+          component: application
+          team: product
+        annotations:
+          summary: "High session abandonment rate"
+          description: |
+            Session abandonment rate is {{ $value | humanizePercentage }}.
+            This is above the 20% threshold and may indicate UX problems.

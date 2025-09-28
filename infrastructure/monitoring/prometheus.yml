@@ -1,0 +1,409 @@
+# =============================================================================
+# Prometheus Configuration for Fake News Game Theory Platform
+# =============================================================================
+# This configuration defines comprehensive monitoring for application services,
+# Kubernetes infrastructure, and business metrics.
+
+global:
+  # How frequently to scrape targets by default
+  scrape_interval: 15s
+  # How frequently to evaluate alerting rules
+  evaluation_interval: 15s
+  # External labels to add to any time series or alerts
+  external_labels:
+    cluster: 'fake-news-platform'
+    environment: '${ENVIRONMENT}'
+    region: '${AWS_REGION}'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+      scheme: http
+      timeout: 10s
+      api_version: v1
+
+# Load alerting rules from files
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+  - "/etc/prometheus/rules/*.yaml"
+
+# Scrape configuration for different targets
+scrape_configs:
+  # =============================================================================
+  # Prometheus Self-Monitoring
+  # =============================================================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'prometheus-server'
+
+  # =============================================================================
+  # Application Services - Backend API
+  # =============================================================================
+  - job_name: 'fake-news-backend'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - fakenews-staging
+            - fakenews-production
+    scrape_interval: 10s
+    metrics_path: /api/metrics
+    relabel_configs:
+      # Only scrape pods with the right labels
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: fake-news-backend
+      # Add namespace as environment label
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: environment
+      # Add pod name
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      # Add node name
+      - source_labels: [__meta_kubernetes_pod_node_name]
+        target_label: node
+      # Add service label
+      - replacement: backend-api
+        target_label: service
+      # Use pod IP and port
+      - source_labels: [__meta_kubernetes_pod_ip]
+        target_label: __address__
+        replacement: '${1}:8000'
+      # Add version from pod labels
+      - source_labels: [__meta_kubernetes_pod_label_version]
+        target_label: version
+      # Add deployment info
+      - source_labels: [__meta_kubernetes_pod_controller_name]
+        target_label: deployment
+
+  # =============================================================================
+  # Application Services - Frontend
+  # =============================================================================
+  - job_name: 'fake-news-frontend'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - fakenews-staging
+            - fakenews-production
+    scrape_interval: 15s
+    metrics_path: /api/metrics
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: fake-news-frontend
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: environment
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_pod_node_name]
+        target_label: node
+      - replacement: frontend
+        target_label: service
+      - source_labels: [__meta_kubernetes_pod_ip]
+        target_label: __address__
+        replacement: '${1}:3000'
+      - source_labels: [__meta_kubernetes_pod_label_version]
+        target_label: version
+
+  # =============================================================================
+  # Kubernetes Infrastructure - Kubelet
+  # =============================================================================
+  - job_name: 'kubelet'
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: true
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    kubernetes_sd_configs:
+      - role: node
+    scrape_interval: 30s
+    relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - target_label: __address__
+        replacement: kubernetes.default.svc:443
+      - source_labels: [__meta_kubernetes_node_name]
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/${1}/proxy/metrics
+      - source_labels: [__meta_kubernetes_node_name]
+        target_label: node
+
+  # =============================================================================
+  # Kubernetes Infrastructure - cAdvisor (Container Metrics)
+  # =============================================================================
+  - job_name: 'cadvisor'
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: true
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    kubernetes_sd_configs:
+      - role: node
+    scrape_interval: 30s
+    relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - target_label: __address__
+        replacement: kubernetes.default.svc:443
+      - source_labels: [__meta_kubernetes_node_name]
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+      - source_labels: [__meta_kubernetes_node_name]
+        target_label: node
+
+  # =============================================================================
+  # Kubernetes Infrastructure - API Server
+  # =============================================================================
+  - job_name: 'kubernetes-apiservers'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - default
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: true
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    scrape_interval: 30s
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: default;kubernetes;https
+
+  # =============================================================================
+  # Kubernetes Infrastructure - Service Endpoints
+  # =============================================================================
+  - job_name: 'kubernetes-service-endpoints'
+    kubernetes_sd_configs:
+      - role: endpoints
+    scrape_interval: 30s
+    relabel_configs:
+      # Only scrape services with prometheus.io/scrape=true annotation
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      # Use custom metrics path if specified
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      # Use custom port if specified
+      - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      # Add service and namespace labels
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_service_name]
+        action: replace
+        target_label: kubernetes_name
+
+  # =============================================================================
+  # Kubernetes Infrastructure - Pod Monitoring
+  # =============================================================================
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+    scrape_interval: 30s
+    relabel_configs:
+      # Only scrape pods with prometheus.io/scrape=true annotation
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      # Use custom metrics path if specified
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      # Use custom port if specified
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      # Add pod labels
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+
+  # =============================================================================
+  # External Services - Database (RDS)
+  # =============================================================================
+  - job_name: 'rds-exporter'
+    static_configs:
+      - targets: ['rds-exporter:9042']
+    scrape_interval: 60s
+    metrics_path: /metrics
+    relabel_configs:
+      - replacement: database
+        target_label: service
+      - replacement: postgresql
+        target_label: engine
+
+  # =============================================================================
+  # External Services - Redis (ElastiCache)
+  # =============================================================================
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    relabel_configs:
+      - replacement: cache
+        target_label: service
+      - replacement: redis
+        target_label: engine
+
+  # =============================================================================
+  # Monitoring Infrastructure - Node Exporter
+  # =============================================================================
+  - job_name: 'node-exporter'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - fakenews-monitoring
+    scrape_interval: 30s
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: node-exporter
+      - source_labels: [__meta_kubernetes_pod_node_name]
+        target_label: node
+      - source_labels: [__meta_kubernetes_pod_host_ip]
+        target_label: __address__
+        replacement: '${1}:9100'
+      - replacement: infrastructure
+        target_label: service
+
+  # =============================================================================
+  # Monitoring Infrastructure - Blackbox Exporter (Health Checks)
+  # =============================================================================
+  - job_name: 'blackbox-http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - https://api.fake-news-platform.com/api/health
+        - https://fake-news-platform.com/api/health
+        - https://api-staging.fake-news-platform.com/api/health
+        - https://staging.fake-news-platform.com/api/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+      - replacement: health-check
+        target_label: service
+
+  # =============================================================================
+  # Business Metrics - Custom Application Metrics
+  # =============================================================================
+  - job_name: 'business-metrics'
+    kubernetes_sd_configs:
+      - role: service
+        namespaces:
+          names:
+            - fakenews-staging
+            - fakenews-production
+    scrape_interval: 10s
+    metrics_path: /api/business-metrics
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_label_app]
+        action: keep
+        regex: fake-news-backend
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: environment
+      - replacement: business-metrics
+        target_label: service
+      - source_labels: [__meta_kubernetes_service_name]
+        target_label: kubernetes_service_name
+
+  # =============================================================================
+  # ML Model Metrics - Model Performance and Training
+  # =============================================================================
+  - job_name: 'ml-model-metrics'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - fakenews-staging
+            - fakenews-production
+    scrape_interval: 30s
+    metrics_path: /api/model-metrics
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_component]
+        action: keep
+        regex: ml-training|ml-inference
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: environment
+      - source_labels: [__meta_kubernetes_pod_label_component]
+        target_label: component
+      - replacement: ml-models
+        target_label: service
+      - source_labels: [__meta_kubernetes_pod_ip]
+        target_label: __address__
+        replacement: '${1}:8080'
+
+  # =============================================================================
+  # Game Theory Simulation Metrics
+  # =============================================================================
+  - job_name: 'simulation-metrics'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - fakenews-staging
+            - fakenews-production
+    scrape_interval: 15s
+    metrics_path: /api/simulation-metrics
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_component]
+        action: keep
+        regex: game-theory
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: environment
+      - replacement: simulations
+        target_label: service
+      - source_labels: [__meta_kubernetes_pod_ip]
+        target_label: __address__
+        replacement: '${1}:8080'
+
+# =============================================================================
+# Storage Configuration
+# =============================================================================
+# Configure data retention and storage
+storage:
+  tsdb:
+    # Retention period for metrics
+    retention.time: 30d
+    # Maximum size on disk
+    retention.size: 50GB
+    # Block compression
+    wal-compression: true

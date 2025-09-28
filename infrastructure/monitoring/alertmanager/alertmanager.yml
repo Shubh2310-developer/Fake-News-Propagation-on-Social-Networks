@@ -1,0 +1,287 @@
+# =============================================================================
+# Alertmanager Configuration for Fake News Game Theory Platform
+# =============================================================================
+# This configuration defines how alerts are routed, grouped, and delivered
+# to different notification channels based on severity and team ownership.
+
+global:
+  # SMTP configuration for email notifications
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@fake-news-platform.com'
+  smtp_auth_username: 'alerts@fake-news-platform.com'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_require_tls: true
+
+  # Slack webhook URL (will be injected via environment variable)
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+
+  # Default notification timeout
+  resolve_timeout: 5m
+
+# Routing tree - determines how alerts are grouped and where they go
+route:
+  # Root route - catches all alerts
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s        # Wait before sending initial notification
+  group_interval: 10s    # Wait before sending updates about new alerts in group
+  repeat_interval: 1h    # Wait before resending a notification
+
+  # Default receiver for unmatched alerts
+  receiver: 'default-notifications'
+
+  # Sub-routes for specific alert patterns
+  routes:
+    # Critical production alerts - immediate notification
+    - match:
+        severity: critical
+        environment: production
+      receiver: 'critical-alerts'
+      group_wait: 0s
+      repeat_interval: 15m
+
+    # Application team alerts
+    - match:
+        team: platform
+      receiver: 'platform-team'
+      group_by: ['alertname', 'service']
+
+    # Data Science team alerts
+    - match:
+        team: data-science
+      receiver: 'data-science-team'
+      group_by: ['alertname', 'model_type']
+
+    # Infrastructure alerts
+    - match:
+        component: infrastructure
+      receiver: 'infrastructure-team'
+      group_by: ['alertname', 'node']
+
+    # Business/Product alerts
+    - match:
+        team: product
+      receiver: 'product-team'
+      repeat_interval: 4h  # Less frequent for business metrics
+
+    # Staging environment alerts (lower priority)
+    - match:
+        environment: staging
+      receiver: 'staging-alerts'
+      group_wait: 5m
+      repeat_interval: 2h
+
+    # Info-level alerts (monitoring only)
+    - match:
+        severity: info
+      receiver: 'monitoring-alerts'
+      repeat_interval: 12h
+
+# Alert inhibition rules - suppress certain alerts when others are firing
+inhibit_rules:
+  # Suppress warning alerts when critical ones are active
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'service', 'instance']
+
+  # Suppress individual pod alerts when entire service is down
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match_re:
+      alertname: '(HighMemoryUsage|HighCPUUsage|PodCrashLooping)'
+    equal: ['service']
+
+  # Suppress model accuracy alerts when predictions are not happening
+  - source_match:
+      alertname: 'NoPredictions'
+    target_match:
+      alertname: 'LowModelAccuracy'
+    equal: ['environment']
+
+# Notification receivers configuration
+receivers:
+  # =============================================================================
+  # Default Notifications
+  # =============================================================================
+  - name: 'default-notifications'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alerts-general'
+        title: 'Platform Alert'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Environment:* {{ .Labels.environment }}
+          {{ end }}
+        color: 'warning'
+
+  # =============================================================================
+  # Critical Alerts (Production)
+  # =============================================================================
+  - name: 'critical-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alerts-critical'
+        title: '🚨 CRITICAL PRODUCTION ALERT'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Service:* {{ .Labels.service }}
+          *Environment:* {{ .Labels.environment }}
+          *Runbook:* <https://runbooks.fake-news-platform.com/{{ .Labels.alertname }}|View Runbook>
+          {{ end }}
+        color: 'danger'
+        send_resolved: true
+
+    email_configs:
+      - to: 'platform-oncall@fake-news-platform.com'
+        subject: '🚨 CRITICAL: {{ .GroupLabels.alertname }} in {{ .GroupLabels.environment }}'
+        html: |
+          <h2>Critical Alert Triggered</h2>
+          {{ range .Alerts }}
+          <h3>{{ .Annotations.summary }}</h3>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <p><strong>Service:</strong> {{ .Labels.service }}</p>
+          <p><strong>Environment:</strong> {{ .Labels.environment }}</p>
+          <p><strong>Severity:</strong> {{ .Labels.severity }}</p>
+          <p><strong>Runbook:</strong> <a href="https://runbooks.fake-news-platform.com/{{ .Labels.alertname }}">View Runbook</a></p>
+          {{ end }}
+
+    # PagerDuty integration for critical alerts
+    pagerduty_configs:
+      - routing_key: '${PAGERDUTY_INTEGRATION_KEY}'
+        description: '{{ .GroupLabels.alertname }} in {{ .GroupLabels.environment }}'
+        client: 'Fake News Platform Monitoring'
+        client_url: 'https://grafana.fake-news-platform.com'
+        details:
+          environment: '{{ .GroupLabels.environment }}'
+          service: '{{ .GroupLabels.service }}'
+          severity: '{{ .GroupLabels.severity }}'
+
+  # =============================================================================
+  # Platform Team Alerts
+  # =============================================================================
+  - name: 'platform-team'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#platform-alerts'
+        title: 'Platform Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Service:* {{ .Labels.service }}
+          *Environment:* {{ .Labels.environment }}
+          *Severity:* {{ .Labels.severity }}
+          {{ end }}
+        color: '{{ if eq .Status "firing" }}{{ if eq .GroupLabels.severity "critical" }}danger{{ else }}warning{{ end }}{{ else }}good{{ end }}'
+        send_resolved: true
+
+  # =============================================================================
+  # Data Science Team Alerts
+  # =============================================================================
+  - name: 'data-science-team'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#data-science-alerts'
+        title: 'ML Model Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Model:* {{ .Labels.model_type }}
+          *Environment:* {{ .Labels.environment }}
+          *Severity:* {{ .Labels.severity }}
+          {{ end }}
+        color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
+        send_resolved: true
+
+    email_configs:
+      - to: 'data-science@fake-news-platform.com'
+        subject: 'ML Alert: {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>Machine Learning Alert</h2>
+          {{ range .Alerts }}
+          <h3>{{ .Annotations.summary }}</h3>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <p><strong>Model Type:</strong> {{ .Labels.model_type }}</p>
+          <p><strong>Environment:</strong> {{ .Labels.environment }}</p>
+          {{ end }}
+
+  # =============================================================================
+  # Infrastructure Team Alerts
+  # =============================================================================
+  - name: 'infrastructure-team'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#infrastructure-alerts'
+        title: 'Infrastructure Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Node:* {{ .Labels.node }}
+          *Pod:* {{ .Labels.pod }}
+          *Namespace:* {{ .Labels.namespace }}
+          *Severity:* {{ .Labels.severity }}
+          {{ end }}
+        color: '{{ if eq .Status "firing" }}{{ if eq .GroupLabels.severity "critical" }}danger{{ else }}warning{{ end }}{{ else }}good{{ end }}'
+        send_resolved: true
+
+  # =============================================================================
+  # Product Team Alerts
+  # =============================================================================
+  - name: 'product-team'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#product-alerts'
+        title: 'User Experience Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Environment:* {{ .Labels.environment }}
+          {{ end }}
+        color: 'warning'
+        send_resolved: true
+
+  # =============================================================================
+  # Staging Environment Alerts
+  # =============================================================================
+  - name: 'staging-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#staging-alerts'
+        title: 'Staging Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Service:* {{ .Labels.service }}
+          {{ end }}
+        color: '#36a64f'  # Green for staging
+        send_resolved: false  # Don't spam with resolve notifications
+
+  # =============================================================================
+  # Monitoring/Info Alerts
+  # =============================================================================
+  - name: 'monitoring-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#monitoring-info'
+        title: 'Info: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        color: '#36a64f'
+        send_resolved: false
+
+# Notification templates for consistent formatting
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'

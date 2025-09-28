@@ -1,0 +1,63 @@
+# =============================================================================
+# Grafana Dashboard Provisioning Configuration
+# =============================================================================
+# This configuration tells Grafana where to find dashboard JSON files
+# and how to manage them automatically.
+
+apiVersion: 1
+
+providers:
+  # Application dashboards
+  - name: 'Application Dashboards'
+    orgId: 1
+    folder: 'Application'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/application
+
+  # Infrastructure dashboards
+  - name: 'Infrastructure Dashboards'
+    orgId: 1
+    folder: 'Infrastructure'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/infrastructure
+
+  # Business metrics dashboards
+  - name: 'Business Dashboards'
+    orgId: 1
+    folder: 'Business'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/business
+
+  # Kubernetes cluster dashboards
+  - name: 'Kubernetes Dashboards'
+    orgId: 1
+    folder: 'Kubernetes'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/kubernetes
+
+  # Alert and SLA dashboards
+  - name: 'SLA Dashboards'
+    orgId: 1
+    folder: 'SLA & Alerts'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/sla
