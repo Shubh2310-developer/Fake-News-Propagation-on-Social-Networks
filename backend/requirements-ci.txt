@@ -1,0 +1,6 @@
+# Minimal requirements for CI testing
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic>=2.11.7,<3.0.0
+pytest==7.4.3
+pytest-asyncio==0.21.1
