@@ -1,0 +1,63 @@
+================================================================================
+NETWORK ANALYSIS FOR FAKE NEWS DETECTION - COMPREHENSIVE REPORT
+================================================================================
+Generated: 2025-09-29 11:34:03
+
+EXECUTIVE SUMMARY
+----------------------------------------
+• Networks Analyzed: 9
+• Total Nodes: 10,500
+• Propagation Scenarios: 45
+• Game Theory Scenarios: 54
+• System Stability Rate: 100.0%
+
+KEY FINDINGS
+----------------------------------------
+1. INFORMATION PROPAGATION:
+   • Fake news spreads 1.5x faster than true news
+   • Average fake news reach: 56.0 nodes
+   • Average true news reach: 36.2 nodes
+
+2. NETWORK TOPOLOGY EFFECTS:
+   • barabasi_albert: 73.5 average reach
+   • erdos_renyi: 35.2 average reach
+   • watts_strogatz: 31.0 average reach
+
+3. STRATEGIC BEHAVIOR:
+   • 100% of scenarios reach equilibrium
+   • Average equilibria in stable systems: 1.0
+
+STATISTICAL ANALYSIS
+----------------------------------------
+• Content Quality vs Reach Correlation: -0.219
+• Content Quality vs Speed Correlation: -0.538
+
+NETWORK EFFICIENCY METRICS
+----------------------------------------
+• barabasi_albert_500: Efficiency = 0.0007
+• barabasi_albert_1000: Efficiency = 0.0002
+• barabasi_albert_2000: Efficiency = 0.0001
+• watts_strogatz_500: Efficiency = 0.0052
+• watts_strogatz_1000: Efficiency = 0.0027
+• watts_strogatz_2000: Efficiency = 0.0013
+• erdos_renyi_500: Efficiency = 0.0001
+• erdos_renyi_1000: Efficiency = 0.0000
+• erdos_renyi_2000: Efficiency = 0.0000
+
+RECOMMENDATIONS
+----------------------------------------
+1. Focus fact-checking on high-influence nodes in scale-free networks
+2. Implement early detection systems for content quality < 0.3
+3. Design intervention strategies for maximum network disruption
+4. Consider game-theoretic incentives in platform design
+
+TECHNICAL SPECIFICATIONS
+----------------------------------------
+• Network Types: barabasi_albert, watts_strogatz, erdos_renyi
+• Network Sizes: 500, 1000, 2000
+• Content Quality Range: 0.1 - 0.9
+• Detection Accuracy Range: 0.6 - 0.9
+
+================================================================================
+END OF REPORT
+================================================================================

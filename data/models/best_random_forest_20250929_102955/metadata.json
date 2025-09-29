@@ -1,0 +1,8 @@
+{
+  "model_name": "best_random_forest",
+  "timestamp": "20250929_102955",
+  "model_type": "RandomForestClassifier",
+  "selection_criteria": "F1 Score",
+  "comparison_rank": 1,
+  "total_models_compared": 7
+}
