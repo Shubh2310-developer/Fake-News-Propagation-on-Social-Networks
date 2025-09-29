@@ -1,0 +1,44 @@
+
+FAKE NEWS GAME THEORY - SIMULATION EXPERIMENTS REPORT
+======================================================================
+
+Generated: 2025-09-29 22:38:19.266350
+
+EXPERIMENT CONFIGURATION:
+- Network Sizes: [100, 500, 1000, 2000]
+- Network Types: ['barabasi_albert', 'watts_strogatz', 'erdos_renyi']
+- Number of Spreaders: [5, 10, 20]
+- Simulations per Configuration: 10
+- Total Experiments: 360
+
+KEY FINDINGS:
+
+1. FAKE NEWS PROPAGATION ADVANTAGE
+   - Average Fake/Real Reach Ratio: 1.12x
+   - Fake news spreads 11.7% further than real news
+
+2. NETWORK TOPOLOGY EFFECTS
+   network_type
+barabasi_albert    29.533333
+erdos_renyi        18.066667
+watts_strogatz     13.233333
+
+3. INTERVENTION EFFECTIVENESS
+   - Influencer Strategy: 3.4% reduction
+   - Education Strategy: 23.5% reduction
+
+4. STATISTICAL SIGNIFICANCE
+   - Network type effect: p-value = 0.0000
+   - Effect size (Cohen's d): 0.1689
+
+RECOMMENDATIONS:
+1. Prioritize interventions in scale-free networks (highest spread potential)
+2. Target high-influence nodes for fact-checking resources
+3. Implement graduated response strategies rather than binary moderation
+4. Focus educational campaigns on increasing user media literacy
+
+DATA FILES:
+- Full results: ../data/processed/simulation_results.csv
+- Visualizations: ../reports/figures/
+
+======================================================================

@@ -1,0 +1,24 @@
+{
+  "experiment_metadata": {
+    "total_experiments": 81,
+    "completion_time": "2025-09-29 22:44:52.396869"
+  },
+  "key_findings": {
+    "fake_news_advantage": 1.0998447939992673,
+    "most_vulnerable_network": "barabasi_albert",
+    "best_intervention": "Education Strategy"
+  },
+  "statistical_results": {
+    "anova_f_stat": 22.438302614355962,
+    "anova_p_value": 2.0062753337160935e-08,
+    "correlations": {
+      "avg_clustering": -0.31636578937011206,
+      "avg_path_length": -0.3695315825121476,
+      "density": -0.15196754289003733,
+      "fake_news_reach": 1.0
+    },
+    "fake_mean": 15.753086419753087,
+    "real_mean": 14.358024691358025,
+    "cohens_d": 0.16903880351934125
+  }
+}
