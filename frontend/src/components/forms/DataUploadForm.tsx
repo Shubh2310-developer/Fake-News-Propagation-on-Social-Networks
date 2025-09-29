@@ -18,13 +18,19 @@ interface UploadableFile {
 }
 
 interface DataUploadFormProps {
+  onUpload?: (files: any) => void;
   onUploadComplete?: (results: any) => void;
+  acceptedTypes?: string[];
   acceptedFileTypes?: Record<string, string[]>;
   maxFileSize?: number;
+  title?: string;
+  description?: string;
 }
 
 export const DataUploadForm: React.FC<DataUploadFormProps> = ({
+  onUpload,
   onUploadComplete,
+  acceptedTypes,
   acceptedFileTypes = {
     'text/csv': ['.csv'],
     'application/json': ['.json'],

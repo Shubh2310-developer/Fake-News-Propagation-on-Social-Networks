@@ -12,7 +12,7 @@ export const API_ROUTES = {
   STRATEGY_EVOLUTION: '/simulation/strategy-evolution',
 } as const;
 
-export const DEFAULT_SIMULATION_PARAMS: GameParameters = {
+export const DEFAULT_GAME_PARAMS: GameParameters = {
   metadata: {
     name: 'Default Simulation',
     description: 'A basic simulation with default parameters',
@@ -103,6 +103,9 @@ export const DEFAULT_SIMULATION_PARAMS: GameParameters = {
     }
   }
 };
+
+// Alias for backward compatibility
+export const DEFAULT_SIMULATION_PARAMS = DEFAULT_GAME_PARAMS;
 
 export const NODE_COLORS: Record<string, string> = {
   spreader: '#FF6B6B',

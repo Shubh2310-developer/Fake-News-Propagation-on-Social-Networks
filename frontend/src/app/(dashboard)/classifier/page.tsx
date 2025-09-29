@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Upload, Download, Play, Brain, Gauge, Settings, FileText, BarChart3, Database, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Download, Play, Brain, Gauge, Settings, FileText, BarChart3, Database, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

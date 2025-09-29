@@ -687,13 +687,13 @@ export const PayoffMatrix: React.FC<PayoffMatrixProps> = ({
                       {analysis.dominantStrategies.player1 ? (
                         <p>• {data.players[0]} should always play {data.strategies[0][analysis.dominantStrategies.player1.strategy]}.</p>
                       ) : (
-                        <p>• {data.players[0]} needs to consider {data.players[1]}'s likely strategy.</p>
+                        <p>• {data.players[0]} needs to consider {data.players[1]}&apos;s likely strategy.</p>
                       )}
 
                       {analysis.dominantStrategies.player2 ? (
                         <p>• {data.players[1]} should always play {data.strategies[1][analysis.dominantStrategies.player2.strategy]}.</p>
                       ) : (
-                        <p>• {data.players[1]} needs to consider {data.players[0]}'s likely strategy.</p>
+                        <p>• {data.players[1]} needs to consider {data.players[0]}&apos;s likely strategy.</p>
                       )}
 
                       {analysis.nashEquilibria.length > 1 && (
