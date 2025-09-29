@@ -1,0 +1,28 @@
+{
+  "methodology": "Robust Nash equilibrium analysis with perturbation testing",
+  "payoff_normalization": "All player utilities bounded to [-10, +10] scale",
+  "critical_fixes": [
+    "Fixed payoff imbalance - spreaders no longer dominate",
+    "Added realistic costs (detection penalties, ban risks)",
+    "Implemented robustness testing with parameter perturbation",
+    "Statistical significance testing for all comparisons"
+  ],
+  "sample_equilibrium": {
+    "strategies": {
+      "spreader": "post_true",
+      "fact_checker": "thorough_investigation",
+      "platform": "strict"
+    },
+    "payoffs": {
+      "spreader": -1.175,
+      "fact_checker": 2.5,
+      "platform": -1.8
+    },
+    "stability_score": 0.742
+  },
+  "robustness_metrics": {
+    "equilibria_found": 3,
+    "survival_rate_under_perturbation": 0.65,
+    "avg_stability_score": 0.681
+  }
+}

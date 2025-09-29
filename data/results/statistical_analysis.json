@@ -1,0 +1,56 @@
+{
+  "reach_by_quality": {
+    "0.1": {
+      "mean": 61.125,
+      "std": 137.87080682653598,
+      "ci_lower": 13.6203125,
+      "ci_upper": 138.003125
+    },
+    "0.3": {
+      "mean": 15.125,
+      "std": 20.563544806282792,
+      "ci_lower": 7.8125,
+      "ci_upper": 26.8125
+    },
+    "0.7": {
+      "mean": 15.3125,
+      "std": 15.478689988174064,
+      "ci_lower": 8.6875,
+      "ci_upper": 23.4390625
+    },
+    "0.9": {
+      "mean": 12.5625,
+      "std": 10.700284750883968,
+      "ci_lower": 8.1234375,
+      "ci_upper": 18.7515625
+    }
+  },
+  "intervention_effectiveness": {
+    "strategy_1": 0.7423728813559322,
+    "strategy_2": 0.47570621468926555,
+    "strategy_3": 0.8994350282485876
+  },
+  "network_type_effects": {
+    "barabasi_albert": {
+      "mean_reach": 65.6875,
+      "variance": 18627.83984375,
+      "sample_size": 16
+    },
+    "facebook_ego": {
+      "mean_reach": 7.5,
+      "variance": 9.875,
+      "sample_size": 16
+    },
+    "twitter_ego": {
+      "mean_reach": 21.75,
+      "variance": 548.8125,
+      "sample_size": 16
+    },
+    "watts_strogatz": {
+      "mean_reach": 9.1875,
+      "variance": 27.52734375,
+      "sample_size": 16
+    }
+  },
+  "confidence_intervals": {}
+}

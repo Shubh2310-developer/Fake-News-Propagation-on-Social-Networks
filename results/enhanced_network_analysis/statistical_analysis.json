@@ -1,0 +1,56 @@
+{
+  "reach_by_quality": {
+    "0.1": {
+      "mean": 53.875,
+      "std": 131.06624040919158,
+      "ci_lower": 11.8734375,
+      "ci_upper": 120.94218749999999
+    },
+    "0.3": {
+      "mean": 45.875,
+      "std": 111.35353328475931,
+      "ci_lower": 7.0609375,
+      "ci_upper": 111.8140625
+    },
+    "0.7": {
+      "mean": 24.8125,
+      "std": 40.378240968992195,
+      "ci_lower": 9.36875,
+      "ci_upper": 48.3765625
+    },
+    "0.9": {
+      "mean": 18.75,
+      "std": 23.710493457539005,
+      "ci_lower": 8.809375,
+      "ci_upper": 31.6890625
+    }
+  },
+  "intervention_effectiveness": {
+    "strategy_1": 0.9145860709592641,
+    "strategy_2": 0.6379763469119579,
+    "strategy_3": 0.9408672798948752
+  },
+  "network_type_effects": {
+    "barabasi_albert": {
+      "mean_reach": 108.6875,
+      "variance": 25206.33984375,
+      "sample_size": 16
+    },
+    "facebook_ego": {
+      "mean_reach": 7.0625,
+      "variance": 9.68359375,
+      "sample_size": 16
+    },
+    "twitter_ego": {
+      "mean_reach": 16.75,
+      "variance": 198.9375,
+      "sample_size": 16
+    },
+    "watts_strogatz": {
+      "mean_reach": 10.8125,
+      "variance": 69.52734375,
+      "sample_size": 16
+    }
+  },
+  "confidence_intervals": {}
+}

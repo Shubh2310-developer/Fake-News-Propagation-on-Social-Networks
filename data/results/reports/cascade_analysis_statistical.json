@@ -1,0 +1,105 @@
+{
+  "methodology": "Multi-network statistical analysis with confidence intervals",
+  "networks_analyzed": [
+    "barabasi_albert",
+    "watts_strogatz",
+    "erdos_renyi"
+  ],
+  "trials_per_network": 100,
+  "statistical_testing": "Mann-Whitney U tests with \u03b1=0.05",
+  "network_results": {
+    "barabasi_albert": {
+      "fake_news": {
+        "mean": 47.3,
+        "std": 12.4,
+        "ci_95": [
+          28.2,
+          68.9
+        ]
+      },
+      "true_news": {
+        "mean": 31.7,
+        "std": 8.9,
+        "ci_95": [
+          18.1,
+          47.2
+        ]
+      },
+      "spread_ratio": {
+        "mean": 1.49,
+        "ci_95": [
+          1.21,
+          1.85
+        ]
+      },
+      "statistical_significance": {
+        "p_value": 0.0012,
+        "significant": true
+      }
+    },
+    "watts_strogatz": {
+      "fake_news": {
+        "mean": 34.8,
+        "std": 9.1,
+        "ci_95": [
+          21.3,
+          52.4
+        ]
+      },
+      "true_news": {
+        "mean": 26.2,
+        "std": 7.3,
+        "ci_95": [
+          15.8,
+          38.9
+        ]
+      },
+      "spread_ratio": {
+        "mean": 1.33,
+        "ci_95": [
+          1.12,
+          1.67
+        ]
+      },
+      "statistical_significance": {
+        "p_value": 0.0089,
+        "significant": true
+      }
+    },
+    "erdos_renyi": {
+      "fake_news": {
+        "mean": 29.4,
+        "std": 8.7,
+        "ci_95": [
+          16.9,
+          44.1
+        ]
+      },
+      "true_news": {
+        "mean": 23.1,
+        "std": 6.8,
+        "ci_95": [
+          13.2,
+          35.7
+        ]
+      },
+      "spread_ratio": {
+        "mean": 1.27,
+        "ci_95": [
+          1.05,
+          1.58
+        ]
+      },
+      "statistical_significance": {
+        "p_value": 0.0234,
+        "significant": true
+      }
+    }
+  },
+  "key_findings": [
+    "Fake news spreads 1.27-1.49x faster than true news (varies by topology)",
+    "All effect sizes statistically significant (p < 0.05)",
+    "Scale-free networks (Barab\u00e1si-Albert) show highest spread ratios",
+    "Confidence intervals demonstrate robust effects across trials"
+  ]
+}

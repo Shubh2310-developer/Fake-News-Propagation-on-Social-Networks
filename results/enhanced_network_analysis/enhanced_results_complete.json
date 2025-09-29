@@ -1,0 +1,1556 @@
+{
+  "networks": {
+    "barabasi_albert_1000": {
+      "properties": {
+        "nodes": 1000,
+        "edges": 9900,
+        "density": 0.01981981981981982,
+        "clustering": 0.05673271822249788,
+        "agent_diversity": 5,
+        "avg_trust": 0.6180988389497526,
+        "trust_heterogeneity": 0.015495582915217713,
+        "agent_distribution": {
+          "casual_user": 858,
+          "bot": 72,
+          "fact_checker": 66,
+          "influencer": 2,
+          "expert": 2
+        }
+      }
+    },
+    "facebook_ego_800": {
+      "properties": {
+        "nodes": 800,
+        "edges": 1133,
+        "density": 0.003545056320400501,
+        "clustering": 0.2600394885602291,
+        "agent_diversity": 5,
+        "avg_trust": 0.6271770649862581,
+        "trust_heterogeneity": 0.015674383915005974,
+        "agent_distribution": {
+          "casual_user": 688,
+          "fact_checker": 29,
+          "bot": 78,
+          "influencer": 2,
+          "expert": 3
+        }
+      }
+    },
+    "twitter_ego_1200": {
+      "properties": {
+        "nodes": 1200,
+        "edges": 4904,
+        "density": 0.006816791770920211,
+        "clustering": 0.031339357079891564,
+        "agent_diversity": 3,
+        "avg_trust": 0.6136304217344714,
+        "trust_heterogeneity": 0.015882385774987497,
+        "agent_distribution": {
+          "casual_user": 1030,
+          "bot": 115,
+          "fact_checker": 55
+        }
+      }
+    },
+    "watts_strogatz_1000": {
+      "properties": {
+        "nodes": 1000,
+        "edges": 4000,
+        "density": 0.008008008008008008,
+        "clustering": 0.2549490120990121,
+        "agent_diversity": 5,
+        "avg_trust": 0.622295967925411,
+        "trust_heterogeneity": 0.015786210616165277,
+        "agent_distribution": {
+          "casual_user": 801,
+          "fact_checker": 56,
+          "influencer": 4,
+          "expert": 44,
+          "bot": 95
+        }
+      }
+    }
+  },
+  "propagation": {
+    "barabasi_albert_1000": [
+      {
+        "network_type": "barabasi_albert",
+        "network_size": 1000,
+        "content_quality": 0.1,
+        "intervention_id": 0,
+        "interventions": {},
+        "final_reach": 554,
+        "cascade_speed": 50,
+        "peak_infections": 23,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {},
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "network_type": "barabasi_albert",
+        "network_size": 1000,
+        "content_quality": 0.1,
+        "intervention_id": 1,
+        "interventions": {
+          "fact_checking": 0.2
+        },
+        "final_reach": 25,
+        "cascade_speed": 50,
+        "peak_infections": 10,
+        "fact_checked_total": 105,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.975,
+          "fact_check_coverage": 4.2,
+          "intervention_timing": 50
+        },
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "network_type": "barabasi_albert",
+        "network_size": 1000,
+        "content_quality": 0.1,
+        "intervention_id": 2,
+        "interventions": {
+          "inoculation": 0.15,
+          "fact_checking": 0.1
+        },
+        "final_reach": 89,
+        "cascade_speed": 50,
+        "peak_infections": 13,
+        "fact_checked_total": 81,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.911,
+          "fact_check_coverage": 0.9101123595505618,
+          "intervention_timing": 50
+        },
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "network_type": "barabasi_albert",
+        "network_size": 1000,
+        "content_quality": 0.1,
+        "intervention_id": 3,
+        "interventions": {
+          "node_removal": 0.05,
+          "fact_checking": 0.3
+        },
+        "final_reach": 7,
+        "cascade_speed": 1,
+        "peak_infections": 0,
+        "fact_checked_total": 3,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.993,
+          "fact_check_coverage": 0.42857142857142855,
+          "intervention_timing": 1
+        },
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "network_type": "barabasi_albert",
+        "network_size": 1000,
+        "content_quality": 0.3,
+        "intervention_id": 0,
+        "interventions": {},
+        "final_reach": 448,
+        "cascade_speed": 50,
+        "peak_infections": 20,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {},
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "network_type": "barabasi_albert",
+        "network_size": 1000,
+        "content_quality": 0.3,
+        "intervention_id": 1,
+        "interventions": {
+          "fact_checking": 0.2
+        },
+        "final_reach": 8,
+        "cascade_speed": 50,
+        "peak_infections": 2,
+        "fact_checked_total": 21,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.992,
+          "fact_check_coverage": 2.625,
+          "intervention_timing": 50
+        },
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "network_type": "barabasi_albert",
+        "network_size": 1000,
+        "content_quality": 0.3,
+        "intervention_id": 2,
+        "interventions": {
+          "inoculation": 0.15,
+          "fact_checking": 0.1
+        },
+        "final_reach": 174,
+        "cascade_speed": 50,
+        "peak_infections": 15,
+        "fact_checked_total": 158,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.8260000000000001,
+          "fact_check_coverage": 0.9080459770114943,
+          "intervention_timing": 50
+        },
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "network_type": "barabasi_albert",
+        "network_size": 1000,
+        "content_quality": 0.3,
+        "intervention_id": 3,
+        "interventions": {
+          "node_removal": 0.05,
+          "fact_checking": 0.3
+        },
+        "final_reach": 3,
+        "cascade_speed": 30,
+        "peak_infections": 3,
+        "fact_checked_total": 14,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.997,
+          "fact_check_coverage": 4.666666666666667,
+          "intervention_timing": 30
+        },
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "network_type": "barabasi_albert",
+        "network_size": 1000,
+        "content_quality": 0.7,
+        "intervention_id": 0,
+        "interventions": {},
+        "final_reach": 163,
+        "cascade_speed": 50,
+        "peak_infections": 10,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {},
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "network_type": "barabasi_albert",
+        "network_size": 1000,
+        "content_quality": 0.7,
+        "intervention_id": 1,
+        "interventions": {
+          "fact_checking": 0.2
+        },
+        "final_reach": 9,
+        "cascade_speed": 50,
+        "peak_infections": 2,
+        "fact_checked_total": 18,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.991,
+          "fact_check_coverage": 2.0,
+          "intervention_timing": 50
+        },
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "network_type": "barabasi_albert",
+        "network_size": 1000,
+        "content_quality": 0.7,
+        "intervention_id": 2,
+        "interventions": {
+          "inoculation": 0.15,
+          "fact_checking": 0.1
+        },
+        "final_reach": 80,
+        "cascade_speed": 50,
+        "peak_infections": 6,
+        "fact_checked_total": 41,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.92,
+          "fact_check_coverage": 0.5125,
+          "intervention_timing": 50
+        },
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "network_type": "barabasi_albert",
+        "network_size": 1000,
+        "content_quality": 0.7,
+        "intervention_id": 3,
+        "interventions": {
+          "node_removal": 0.05,
+          "fact_checking": 0.3
+        },
+        "final_reach": 9,
+        "cascade_speed": 1,
+        "peak_infections": 0,
+        "fact_checked_total": 1,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.991,
+          "fact_check_coverage": 0.1111111111111111,
+          "intervention_timing": 1
+        },
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "network_type": "barabasi_albert",
+        "network_size": 1000,
+        "content_quality": 0.9,
+        "intervention_id": 0,
+        "interventions": {},
+        "final_reach": 88,
+        "cascade_speed": 50,
+        "peak_infections": 6,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {},
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "network_type": "barabasi_albert",
+        "network_size": 1000,
+        "content_quality": 0.9,
+        "intervention_id": 1,
+        "interventions": {
+          "fact_checking": 0.2
+        },
+        "final_reach": 10,
+        "cascade_speed": 2,
+        "peak_infections": 0,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.99,
+          "fact_check_coverage": 0.0,
+          "intervention_timing": 2
+        },
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "network_type": "barabasi_albert",
+        "network_size": 1000,
+        "content_quality": 0.9,
+        "intervention_id": 2,
+        "interventions": {
+          "inoculation": 0.15,
+          "fact_checking": 0.1
+        },
+        "final_reach": 69,
+        "cascade_speed": 50,
+        "peak_infections": 6,
+        "fact_checked_total": 24,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.931,
+          "fact_check_coverage": 0.34782608695652173,
+          "intervention_timing": 50
+        },
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "network_type": "barabasi_albert",
+        "network_size": 1000,
+        "content_quality": 0.9,
+        "intervention_id": 3,
+        "interventions": {
+          "node_removal": 0.05,
+          "fact_checking": 0.3
+        },
+        "final_reach": 3,
+        "cascade_speed": 29,
+        "peak_infections": 2,
+        "fact_checked_total": 9,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.997,
+          "fact_check_coverage": 3.0,
+          "intervention_timing": 29
+        },
+        "network_key": "barabasi_albert_1000"
+      }
+    ],
+    "facebook_ego_800": [
+      {
+        "network_type": "facebook_ego",
+        "network_size": 800,
+        "content_quality": 0.1,
+        "intervention_id": 0,
+        "interventions": {},
+        "final_reach": 12,
+        "cascade_speed": 50,
+        "peak_infections": 1,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {},
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "network_type": "facebook_ego",
+        "network_size": 800,
+        "content_quality": 0.1,
+        "intervention_id": 1,
+        "interventions": {
+          "fact_checking": 0.2
+        },
+        "final_reach": 6,
+        "cascade_speed": 20,
+        "peak_infections": 1,
+        "fact_checked_total": 4,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.9925,
+          "fact_check_coverage": 0.6666666666666666,
+          "intervention_timing": 20
+        },
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "network_type": "facebook_ego",
+        "network_size": 800,
+        "content_quality": 0.1,
+        "intervention_id": 2,
+        "interventions": {
+          "inoculation": 0.15,
+          "fact_checking": 0.1
+        },
+        "final_reach": 9,
+        "cascade_speed": 50,
+        "peak_infections": 1,
+        "fact_checked_total": 3,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.98875,
+          "fact_check_coverage": 0.3333333333333333,
+          "intervention_timing": 50
+        },
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "network_type": "facebook_ego",
+        "network_size": 800,
+        "content_quality": 0.1,
+        "intervention_id": 3,
+        "interventions": {
+          "node_removal": 0.05,
+          "fact_checking": 0.3
+        },
+        "final_reach": 3,
+        "cascade_speed": 18,
+        "peak_infections": 0,
+        "fact_checked_total": 5,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.99625,
+          "fact_check_coverage": 1.6666666666666667,
+          "intervention_timing": 18
+        },
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "network_type": "facebook_ego",
+        "network_size": 800,
+        "content_quality": 0.3,
+        "intervention_id": 0,
+        "interventions": {},
+        "final_reach": 12,
+        "cascade_speed": 50,
+        "peak_infections": 1,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {},
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "network_type": "facebook_ego",
+        "network_size": 800,
+        "content_quality": 0.3,
+        "intervention_id": 1,
+        "interventions": {
+          "fact_checking": 0.2
+        },
+        "final_reach": 4,
+        "cascade_speed": 17,
+        "peak_infections": 0,
+        "fact_checked_total": 4,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.995,
+          "fact_check_coverage": 1.0,
+          "intervention_timing": 17
+        },
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "network_type": "facebook_ego",
+        "network_size": 800,
+        "content_quality": 0.3,
+        "intervention_id": 2,
+        "interventions": {
+          "inoculation": 0.15,
+          "fact_checking": 0.1
+        },
+        "final_reach": 8,
+        "cascade_speed": 1,
+        "peak_infections": 0,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.99,
+          "fact_check_coverage": 0.0,
+          "intervention_timing": 1
+        },
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "network_type": "facebook_ego",
+        "network_size": 800,
+        "content_quality": 0.3,
+        "intervention_id": 3,
+        "interventions": {
+          "node_removal": 0.05,
+          "fact_checking": 0.3
+        },
+        "final_reach": 3,
+        "cascade_speed": 14,
+        "peak_infections": 0,
+        "fact_checked_total": 5,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.99625,
+          "fact_check_coverage": 1.6666666666666667,
+          "intervention_timing": 14
+        },
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "network_type": "facebook_ego",
+        "network_size": 800,
+        "content_quality": 0.7,
+        "intervention_id": 0,
+        "interventions": {},
+        "final_reach": 10,
+        "cascade_speed": 28,
+        "peak_infections": 1,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {},
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "network_type": "facebook_ego",
+        "network_size": 800,
+        "content_quality": 0.7,
+        "intervention_id": 1,
+        "interventions": {
+          "fact_checking": 0.2
+        },
+        "final_reach": 5,
+        "cascade_speed": 23,
+        "peak_infections": 0,
+        "fact_checked_total": 3,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.99375,
+          "fact_check_coverage": 0.6,
+          "intervention_timing": 23
+        },
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "network_type": "facebook_ego",
+        "network_size": 800,
+        "content_quality": 0.7,
+        "intervention_id": 2,
+        "interventions": {
+          "inoculation": 0.15,
+          "fact_checking": 0.1
+        },
+        "final_reach": 8,
+        "cascade_speed": 1,
+        "peak_infections": 0,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.99,
+          "fact_check_coverage": 0.0,
+          "intervention_timing": 1
+        },
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "network_type": "facebook_ego",
+        "network_size": 800,
+        "content_quality": 0.7,
+        "intervention_id": 3,
+        "interventions": {
+          "node_removal": 0.05,
+          "fact_checking": 0.3
+        },
+        "final_reach": 3,
+        "cascade_speed": 28,
+        "peak_infections": 1,
+        "fact_checked_total": 6,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.99625,
+          "fact_check_coverage": 2.0,
+          "intervention_timing": 28
+        },
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "network_type": "facebook_ego",
+        "network_size": 800,
+        "content_quality": 0.9,
+        "intervention_id": 0,
+        "interventions": {},
+        "final_reach": 11,
+        "cascade_speed": 50,
+        "peak_infections": 1,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {},
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "network_type": "facebook_ego",
+        "network_size": 800,
+        "content_quality": 0.9,
+        "intervention_id": 1,
+        "interventions": {
+          "fact_checking": 0.2
+        },
+        "final_reach": 5,
+        "cascade_speed": 29,
+        "peak_infections": 1,
+        "fact_checked_total": 4,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.99375,
+          "fact_check_coverage": 0.8,
+          "intervention_timing": 29
+        },
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "network_type": "facebook_ego",
+        "network_size": 800,
+        "content_quality": 0.9,
+        "intervention_id": 2,
+        "interventions": {
+          "inoculation": 0.15,
+          "fact_checking": 0.1
+        },
+        "final_reach": 9,
+        "cascade_speed": 50,
+        "peak_infections": 1,
+        "fact_checked_total": 2,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.98875,
+          "fact_check_coverage": 0.2222222222222222,
+          "intervention_timing": 50
+        },
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "network_type": "facebook_ego",
+        "network_size": 800,
+        "content_quality": 0.9,
+        "intervention_id": 3,
+        "interventions": {
+          "node_removal": 0.05,
+          "fact_checking": 0.3
+        },
+        "final_reach": 5,
+        "cascade_speed": 7,
+        "peak_infections": 0,
+        "fact_checked_total": 3,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.99375,
+          "fact_check_coverage": 0.6,
+          "intervention_timing": 7
+        },
+        "network_key": "facebook_ego_800"
+      }
+    ],
+    "twitter_ego_1200": [
+      {
+        "network_type": "twitter_ego",
+        "network_size": 1200,
+        "content_quality": 0.1,
+        "intervention_id": 0,
+        "interventions": {},
+        "final_reach": 58,
+        "cascade_speed": 50,
+        "peak_infections": 4,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {},
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "network_type": "twitter_ego",
+        "network_size": 1200,
+        "content_quality": 0.1,
+        "intervention_id": 1,
+        "interventions": {
+          "fact_checking": 0.2
+        },
+        "final_reach": 6,
+        "cascade_speed": 50,
+        "peak_infections": 3,
+        "fact_checked_total": 26,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.995,
+          "fact_check_coverage": 4.333333333333333,
+          "intervention_timing": 50
+        },
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "network_type": "twitter_ego",
+        "network_size": 1200,
+        "content_quality": 0.1,
+        "intervention_id": 2,
+        "interventions": {
+          "inoculation": 0.15,
+          "fact_checking": 0.1
+        },
+        "final_reach": 13,
+        "cascade_speed": 50,
+        "peak_infections": 3,
+        "fact_checked_total": 18,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.9891666666666666,
+          "fact_check_coverage": 1.3846153846153846,
+          "intervention_timing": 50
+        },
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "network_type": "twitter_ego",
+        "network_size": 1200,
+        "content_quality": 0.1,
+        "intervention_id": 3,
+        "interventions": {
+          "node_removal": 0.05,
+          "fact_checking": 0.3
+        },
+        "final_reach": 9,
+        "cascade_speed": 1,
+        "peak_infections": 0,
+        "fact_checked_total": 3,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.9925,
+          "fact_check_coverage": 0.3333333333333333,
+          "intervention_timing": 1
+        },
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "network_type": "twitter_ego",
+        "network_size": 1200,
+        "content_quality": 0.3,
+        "intervention_id": 0,
+        "interventions": {},
+        "final_reach": 16,
+        "cascade_speed": 9,
+        "peak_infections": 2,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {},
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "network_type": "twitter_ego",
+        "network_size": 1200,
+        "content_quality": 0.3,
+        "intervention_id": 1,
+        "interventions": {
+          "fact_checking": 0.2
+        },
+        "final_reach": 10,
+        "cascade_speed": 1,
+        "peak_infections": 0,
+        "fact_checked_total": 2,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.9916666666666667,
+          "fact_check_coverage": 0.2,
+          "intervention_timing": 1
+        },
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "network_type": "twitter_ego",
+        "network_size": 1200,
+        "content_quality": 0.3,
+        "intervention_id": 2,
+        "interventions": {
+          "inoculation": 0.15,
+          "fact_checking": 0.1
+        },
+        "final_reach": 11,
+        "cascade_speed": 3,
+        "peak_infections": 0,
+        "fact_checked_total": 1,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.9908333333333333,
+          "fact_check_coverage": 0.09090909090909091,
+          "intervention_timing": 3
+        },
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "network_type": "twitter_ego",
+        "network_size": 1200,
+        "content_quality": 0.3,
+        "intervention_id": 3,
+        "interventions": {
+          "node_removal": 0.05,
+          "fact_checking": 0.3
+        },
+        "final_reach": 9,
+        "cascade_speed": 1,
+        "peak_infections": 0,
+        "fact_checked_total": 3,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.9925,
+          "fact_check_coverage": 0.3333333333333333,
+          "intervention_timing": 1
+        },
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "network_type": "twitter_ego",
+        "network_size": 1200,
+        "content_quality": 0.7,
+        "intervention_id": 0,
+        "interventions": {},
+        "final_reach": 42,
+        "cascade_speed": 50,
+        "peak_infections": 3,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {},
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "network_type": "twitter_ego",
+        "network_size": 1200,
+        "content_quality": 0.7,
+        "intervention_id": 1,
+        "interventions": {
+          "fact_checking": 0.2
+        },
+        "final_reach": 8,
+        "cascade_speed": 5,
+        "peak_infections": 0,
+        "fact_checked_total": 4,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.9933333333333333,
+          "fact_check_coverage": 0.5,
+          "intervention_timing": 5
+        },
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "network_type": "twitter_ego",
+        "network_size": 1200,
+        "content_quality": 0.7,
+        "intervention_id": 2,
+        "interventions": {
+          "inoculation": 0.15,
+          "fact_checking": 0.1
+        },
+        "final_reach": 21,
+        "cascade_speed": 50,
+        "peak_infections": 3,
+        "fact_checked_total": 11,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.9825,
+          "fact_check_coverage": 0.5238095238095238,
+          "intervention_timing": 50
+        },
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "network_type": "twitter_ego",
+        "network_size": 1200,
+        "content_quality": 0.7,
+        "intervention_id": 3,
+        "interventions": {
+          "node_removal": 0.05,
+          "fact_checking": 0.3
+        },
+        "final_reach": 10,
+        "cascade_speed": 1,
+        "peak_infections": 0,
+        "fact_checked_total": 2,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.9916666666666667,
+          "fact_check_coverage": 0.2,
+          "intervention_timing": 1
+        },
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "network_type": "twitter_ego",
+        "network_size": 1200,
+        "content_quality": 0.9,
+        "intervention_id": 0,
+        "interventions": {},
+        "final_reach": 29,
+        "cascade_speed": 50,
+        "peak_infections": 3,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {},
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "network_type": "twitter_ego",
+        "network_size": 1200,
+        "content_quality": 0.9,
+        "intervention_id": 1,
+        "interventions": {
+          "fact_checking": 0.2
+        },
+        "final_reach": 7,
+        "cascade_speed": 44,
+        "peak_infections": 2,
+        "fact_checked_total": 17,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.9941666666666666,
+          "fact_check_coverage": 2.4285714285714284,
+          "intervention_timing": 44
+        },
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "network_type": "twitter_ego",
+        "network_size": 1200,
+        "content_quality": 0.9,
+        "intervention_id": 2,
+        "interventions": {
+          "inoculation": 0.15,
+          "fact_checking": 0.1
+        },
+        "final_reach": 13,
+        "cascade_speed": 50,
+        "peak_infections": 2,
+        "fact_checked_total": 9,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.9891666666666666,
+          "fact_check_coverage": 0.6923076923076923,
+          "intervention_timing": 50
+        },
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "network_type": "twitter_ego",
+        "network_size": 1200,
+        "content_quality": 0.9,
+        "intervention_id": 3,
+        "interventions": {
+          "node_removal": 0.05,
+          "fact_checking": 0.3
+        },
+        "final_reach": 6,
+        "cascade_speed": 12,
+        "peak_infections": 1,
+        "fact_checked_total": 7,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.995,
+          "fact_check_coverage": 1.1666666666666667,
+          "intervention_timing": 12
+        },
+        "network_key": "twitter_ego_1200"
+      }
+    ],
+    "watts_strogatz_1000": [
+      {
+        "network_type": "watts_strogatz",
+        "network_size": 1000,
+        "content_quality": 0.1,
+        "intervention_id": 0,
+        "interventions": {},
+        "final_reach": 38,
+        "cascade_speed": 50,
+        "peak_infections": 2,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {},
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "network_type": "watts_strogatz",
+        "network_size": 1000,
+        "content_quality": 0.1,
+        "intervention_id": 1,
+        "interventions": {
+          "fact_checking": 0.2
+        },
+        "final_reach": 9,
+        "cascade_speed": 18,
+        "peak_infections": 3,
+        "fact_checked_total": 10,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.991,
+          "fact_check_coverage": 1.1111111111111112,
+          "intervention_timing": 18
+        },
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "network_type": "watts_strogatz",
+        "network_size": 1000,
+        "content_quality": 0.1,
+        "intervention_id": 2,
+        "interventions": {
+          "inoculation": 0.15,
+          "fact_checking": 0.1
+        },
+        "final_reach": 17,
+        "cascade_speed": 50,
+        "peak_infections": 2,
+        "fact_checked_total": 17,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.983,
+          "fact_check_coverage": 1.0,
+          "intervention_timing": 50
+        },
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "network_type": "watts_strogatz",
+        "network_size": 1000,
+        "content_quality": 0.1,
+        "intervention_id": 3,
+        "interventions": {
+          "node_removal": 0.05,
+          "fact_checking": 0.3
+        },
+        "final_reach": 7,
+        "cascade_speed": 1,
+        "peak_infections": 0,
+        "fact_checked_total": 3,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.993,
+          "fact_check_coverage": 0.42857142857142855,
+          "intervention_timing": 1
+        },
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "network_type": "watts_strogatz",
+        "network_size": 1000,
+        "content_quality": 0.3,
+        "intervention_id": 0,
+        "interventions": {},
+        "final_reach": 10,
+        "cascade_speed": 1,
+        "peak_infections": 0,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {},
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "network_type": "watts_strogatz",
+        "network_size": 1000,
+        "content_quality": 0.3,
+        "intervention_id": 1,
+        "interventions": {
+          "fact_checking": 0.2
+        },
+        "final_reach": 4,
+        "cascade_speed": 50,
+        "peak_infections": 2,
+        "fact_checked_total": 20,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.996,
+          "fact_check_coverage": 5.0,
+          "intervention_timing": 50
+        },
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "network_type": "watts_strogatz",
+        "network_size": 1000,
+        "content_quality": 0.3,
+        "intervention_id": 2,
+        "interventions": {
+          "inoculation": 0.15,
+          "fact_checking": 0.1
+        },
+        "final_reach": 9,
+        "cascade_speed": 3,
+        "peak_infections": 0,
+        "fact_checked_total": 1,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.991,
+          "fact_check_coverage": 0.1111111111111111,
+          "intervention_timing": 3
+        },
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "network_type": "watts_strogatz",
+        "network_size": 1000,
+        "content_quality": 0.3,
+        "intervention_id": 3,
+        "interventions": {
+          "node_removal": 0.05,
+          "fact_checking": 0.3
+        },
+        "final_reach": 5,
+        "cascade_speed": 7,
+        "peak_infections": 1,
+        "fact_checked_total": 6,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.995,
+          "fact_check_coverage": 1.2,
+          "intervention_timing": 7
+        },
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "network_type": "watts_strogatz",
+        "network_size": 1000,
+        "content_quality": 0.7,
+        "intervention_id": 0,
+        "interventions": {},
+        "final_reach": 10,
+        "cascade_speed": 1,
+        "peak_infections": 0,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {},
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "network_type": "watts_strogatz",
+        "network_size": 1000,
+        "content_quality": 0.7,
+        "intervention_id": 1,
+        "interventions": {
+          "fact_checking": 0.2
+        },
+        "final_reach": 7,
+        "cascade_speed": 28,
+        "peak_infections": 1,
+        "fact_checked_total": 7,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.993,
+          "fact_check_coverage": 1.0,
+          "intervention_timing": 28
+        },
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "network_type": "watts_strogatz",
+        "network_size": 1000,
+        "content_quality": 0.7,
+        "intervention_id": 2,
+        "interventions": {
+          "inoculation": 0.15,
+          "fact_checking": 0.1
+        },
+        "final_reach": 9,
+        "cascade_speed": 50,
+        "peak_infections": 2,
+        "fact_checked_total": 8,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.991,
+          "fact_check_coverage": 0.8888888888888888,
+          "intervention_timing": 50
+        },
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "network_type": "watts_strogatz",
+        "network_size": 1000,
+        "content_quality": 0.7,
+        "intervention_id": 3,
+        "interventions": {
+          "node_removal": 0.05,
+          "fact_checking": 0.3
+        },
+        "final_reach": 3,
+        "cascade_speed": 50,
+        "peak_infections": 1,
+        "fact_checked_total": 11,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.997,
+          "fact_check_coverage": 3.6666666666666665,
+          "intervention_timing": 50
+        },
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "network_type": "watts_strogatz",
+        "network_size": 1000,
+        "content_quality": 0.9,
+        "intervention_id": 0,
+        "interventions": {},
+        "final_reach": 21,
+        "cascade_speed": 50,
+        "peak_infections": 1,
+        "fact_checked_total": 0,
+        "intervention_effectiveness": {},
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "network_type": "watts_strogatz",
+        "network_size": 1000,
+        "content_quality": 0.9,
+        "intervention_id": 1,
+        "interventions": {
+          "fact_checking": 0.2
+        },
+        "final_reach": 7,
+        "cascade_speed": 27,
+        "peak_infections": 1,
+        "fact_checked_total": 8,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.993,
+          "fact_check_coverage": 1.1428571428571428,
+          "intervention_timing": 27
+        },
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "network_type": "watts_strogatz",
+        "network_size": 1000,
+        "content_quality": 0.9,
+        "intervention_id": 2,
+        "interventions": {
+          "inoculation": 0.15,
+          "fact_checking": 0.1
+        },
+        "final_reach": 12,
+        "cascade_speed": 50,
+        "peak_infections": 2,
+        "fact_checked_total": 7,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.988,
+          "fact_check_coverage": 0.5833333333333334,
+          "intervention_timing": 50
+        },
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "network_type": "watts_strogatz",
+        "network_size": 1000,
+        "content_quality": 0.9,
+        "intervention_id": 3,
+        "interventions": {
+          "node_removal": 0.05,
+          "fact_checking": 0.3
+        },
+        "final_reach": 5,
+        "cascade_speed": 17,
+        "peak_infections": 1,
+        "fact_checked_total": 6,
+        "intervention_effectiveness": {
+          "infection_reduction_rate": 0.995,
+          "fact_check_coverage": 1.2,
+          "intervention_timing": 17
+        },
+        "network_key": "watts_strogatz_1000"
+      }
+    ]
+  },
+  "game_theory": {
+    "barabasi_albert_1000": [
+      {
+        "content_quality": 0.2,
+        "detection_accuracy": 0.7,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.5752941176470594,
+        "most_stable_type": "pure",
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "content_quality": 0.2,
+        "detection_accuracy": 0.9,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.7335294117647059,
+        "most_stable_type": "pure",
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "content_quality": 0.5,
+        "detection_accuracy": 0.7,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.4861764705882353,
+        "most_stable_type": "pure",
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "content_quality": 0.5,
+        "detection_accuracy": 0.9,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.6444117647058816,
+        "most_stable_type": "pure",
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "content_quality": 0.8,
+        "detection_accuracy": 0.7,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.39705882352941185,
+        "most_stable_type": "pure",
+        "network_key": "barabasi_albert_1000"
+      },
+      {
+        "content_quality": 0.8,
+        "detection_accuracy": 0.9,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.555294117647059,
+        "most_stable_type": "pure",
+        "network_key": "barabasi_albert_1000"
+      }
+    ],
+    "facebook_ego_800": [
+      {
+        "content_quality": 0.2,
+        "detection_accuracy": 0.7,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.543125,
+        "most_stable_type": "pure",
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "content_quality": 0.2,
+        "detection_accuracy": 0.9,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.6975000000000001,
+        "most_stable_type": "pure",
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "content_quality": 0.5,
+        "detection_accuracy": 0.7,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.45593749999999994,
+        "most_stable_type": "pure",
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "content_quality": 0.5,
+        "detection_accuracy": 0.9,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.6103125,
+        "most_stable_type": "pure",
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "content_quality": 0.8,
+        "detection_accuracy": 0.7,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.3687500000000001,
+        "most_stable_type": "pure",
+        "network_key": "facebook_ego_800"
+      },
+      {
+        "content_quality": 0.8,
+        "detection_accuracy": 0.9,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.5231250000000002,
+        "most_stable_type": "pure",
+        "network_key": "facebook_ego_800"
+      }
+    ],
+    "twitter_ego_1200": [
+      {
+        "content_quality": 0.2,
+        "detection_accuracy": 0.7,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.59,
+        "most_stable_type": "pure",
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "content_quality": 0.2,
+        "detection_accuracy": 0.9,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.7500000000000001,
+        "most_stable_type": "pure",
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "content_quality": 0.5,
+        "detection_accuracy": 0.7,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.5,
+        "most_stable_type": "pure",
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "content_quality": 0.5,
+        "detection_accuracy": 0.9,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.6599999999999997,
+        "most_stable_type": "pure",
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "content_quality": 0.8,
+        "detection_accuracy": 0.7,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.4100000000000001,
+        "most_stable_type": "pure",
+        "network_key": "twitter_ego_1200"
+      },
+      {
+        "content_quality": 0.8,
+        "detection_accuracy": 0.9,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.5700000000000002,
+        "most_stable_type": "pure",
+        "network_key": "twitter_ego_1200"
+      }
+    ],
+    "watts_strogatz_1000": [
+      {
+        "content_quality": 0.2,
+        "detection_accuracy": 0.7,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.4025200000000008,
+        "most_stable_type": "pure",
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "content_quality": 0.2,
+        "detection_accuracy": 0.9,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.5035999999999998,
+        "most_stable_type": "pure",
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "content_quality": 0.5,
+        "detection_accuracy": 0.7,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.32571999999999923,
+        "most_stable_type": "pure",
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "content_quality": 0.5,
+        "detection_accuracy": 0.9,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.42680000000000023,
+        "most_stable_type": "pure",
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "content_quality": 0.8,
+        "detection_accuracy": 0.7,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.24891999999999986,
+        "most_stable_type": "pure",
+        "network_key": "watts_strogatz_1000"
+      },
+      {
+        "content_quality": 0.8,
+        "detection_accuracy": 0.9,
+        "pure_equilibria_count": 1,
+        "mixed_equilibria_count": 0,
+        "total_equilibria": 1,
+        "stability_score": 0.3500000000000002,
+        "most_stable_type": "pure",
+        "network_key": "watts_strogatz_1000"
+      }
+    ]
+  },
+  "interventions": {},
+  "statistical_analysis": {
+    "reach_by_quality": {
+      "0.1": {
+        "mean": 53.875,
+        "std": 131.06624040919158,
+        "ci_lower": 11.8734375,
+        "ci_upper": 120.94218749999999
+      },
+      "0.3": {
+        "mean": 45.875,
+        "std": 111.35353328475931,
+        "ci_lower": 7.0609375,
+        "ci_upper": 111.8140625
+      },
+      "0.7": {
+        "mean": 24.8125,
+        "std": 40.378240968992195,
+        "ci_lower": 9.36875,
+        "ci_upper": 48.3765625
+      },
+      "0.9": {
+        "mean": 18.75,
+        "std": 23.710493457539005,
+        "ci_lower": 8.809375,
+        "ci_upper": 31.6890625
+      }
+    },
+    "intervention_effectiveness": {
+      "strategy_1": 0.9145860709592641,
+      "strategy_2": 0.6379763469119579,
+      "strategy_3": 0.9408672798948752
+    },
+    "network_type_effects": {
+      "barabasi_albert": {
+        "mean_reach": 108.6875,
+        "variance": 25206.33984375,
+        "sample_size": 16
+      },
+      "facebook_ego": {
+        "mean_reach": 7.0625,
+        "variance": 9.68359375,
+        "sample_size": 16
+      },
+      "twitter_ego": {
+        "mean_reach": 16.75,
+        "variance": 198.9375,
+        "sample_size": 16
+      },
+      "watts_strogatz": {
+        "mean_reach": 10.8125,
+        "variance": 69.52734375,
+        "sample_size": 16
+      }
+    },
+    "confidence_intervals": {}
+  },
+  "summary": {
+    "total_networks": 4,
+    "total_scenarios": 64,
+    "fake_vs_true_ratio": 2.8733333333333335,
+    "best_intervention": [
+      "strategy_3",
+      0.9408672798948752
+    ],
+    "avg_equilibria_per_scenario": 1.0,
+    "mixed_strategy_prevalence": 0.0,
+    "statistical_confidence": "Bootstrap 95% CI computed",
+    "heterogeneity_impact": "Agent diversity significantly affects propagation"
+  }
+}
