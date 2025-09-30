@@ -11,6 +11,7 @@ interface NetworkVisualizationProps {
   width?: number;
   height?: number;
   onNodeClick?: (node: NodeData) => void;
+  onNodeHover?: (node: NodeData | null, event?: MouseEvent) => void;
 }
 
 export const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
@@ -18,6 +19,7 @@ export const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
   width = 800,
   height = 600,
   onNodeClick,
+  onNodeHover,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
@@ -53,9 +55,10 @@ export const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
       .selectAll('line')
       .data(data.links)
       .join('line')
-      .attr('stroke', '#999')
-      .attr('stroke-opacity', 0.6)
-      .attr('stroke-width', d => Math.sqrt(d.weight || 1));
+      .attr('stroke', d => d.visual?.color || '#999')
+      .attr('stroke-opacity', d => d.visual?.opacity || 0.6)
+      .attr('stroke-width', d => d.visual?.thickness || Math.sqrt(d.weight || 1))
+      .style('transition', 'all 0.3s ease');
 
     // Create nodes
     const node = g.append('g')
@@ -63,11 +66,13 @@ export const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
       .selectAll('circle')
       .data(data.nodes)
       .join('circle')
-      .attr('r', d => d.size || 5)
-      .attr('fill', d => d.color || '#69b3a2')
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 2)
+      .attr('r', d => d.visual?.size || 8)
+      .attr('fill', d => d.visual?.color || '#69b3a2')
+      .attr('stroke', d => d.visual?.strokeColor || '#fff')
+      .attr('stroke-width', d => d.visual?.strokeWidth || 2)
+      .attr('opacity', d => d.visual?.opacity || 1)
       .style('cursor', 'pointer')
+      .style('transition', 'all 0.3s ease')
       .call(d3.drag<SVGCircleElement, NodeData>()
         .on('start', (event, d) => {
           if (!event.active) simulation.alphaTarget(0.3).restart();
@@ -103,6 +108,11 @@ export const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
       .on('mouseenter', (event, d) => {
         setHoveredNode(d.id);
 
+        // Call parent hover handler with mouse event
+        if (onNodeHover) {
+          onNodeHover(d, event as MouseEvent);
+        }
+
         // Highlight connected nodes and links
         const connectedNodes = new Set([d.id]);
         data.links.forEach(link => {
@@ -114,21 +124,56 @@ export const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
           }
         });
 
-        // Dim non-connected elements
-        node.style('opacity', n => connectedNodes.has(n.id) ? 1 : 0.2);
-        link.style('opacity', l => {
-          const sourceId = typeof l.source === 'string' ? l.source : l.source.id;
-          const targetId = typeof l.target === 'string' ? l.target : l.target.id;
-          return (sourceId === d.id || targetId === d.id) ? 1 : 0.1;
-        });
-        label.style('opacity', n => connectedNodes.has(n.id) ? 1 : 0.2);
+        // Dim non-connected elements with smooth transition
+        node
+          .transition()
+          .duration(200)
+          .style('opacity', n => connectedNodes.has(n.id) ? 1 : 0.15);
+
+        link
+          .transition()
+          .duration(200)
+          .style('opacity', l => {
+            const sourceId = typeof l.source === 'string' ? l.source : l.source.id;
+            const targetId = typeof l.target === 'string' ? l.target : l.target.id;
+            return (sourceId === d.id || targetId === d.id) ? 0.8 : 0.05;
+          })
+          .style('stroke-width', l => {
+            const sourceId = typeof l.source === 'string' ? l.source : l.source.id;
+            const targetId = typeof l.target === 'string' ? l.target : l.target.id;
+            const currentWidth = l.visual?.thickness || Math.sqrt(l.weight || 1);
+            return (sourceId === d.id || targetId === d.id) ? currentWidth * 1.5 : currentWidth;
+          });
+
+        label
+          .transition()
+          .duration(200)
+          .style('opacity', n => connectedNodes.has(n.id) ? 1 : 0.15);
       })
       .on('mouseleave', () => {
         setHoveredNode(null);
-        // Reset opacity
-        node.style('opacity', 1);
-        link.style('opacity', 0.6);
-        label.style('opacity', 1);
+
+        // Call parent hover handler to clear
+        if (onNodeHover) {
+          onNodeHover(null);
+        }
+
+        // Reset opacity with smooth transition
+        node
+          .transition()
+          .duration(200)
+          .style('opacity', 1);
+
+        link
+          .transition()
+          .duration(200)
+          .style('opacity', l => l.visual?.opacity || 0.6)
+          .style('stroke-width', l => l.visual?.thickness || Math.sqrt(l.weight || 1));
+
+        label
+          .transition()
+          .duration(200)
+          .style('opacity', 1);
       })
       .on('click', (event, d) => {
         if (onNodeClick) {

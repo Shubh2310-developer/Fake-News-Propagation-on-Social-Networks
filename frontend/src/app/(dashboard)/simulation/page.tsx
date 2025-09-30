@@ -2,597 +2,630 @@
 
 "use client";
 
-import React, { useState } from 'react';
-import { Play, Pause, Square, RotateCcw, Download, Settings, Network, TrendingUp, Users, Activity } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Play,
+  Square,
+  RotateCcw,
+  Loader2,
+  Network,
+  TrendingUp,
+  BarChart3,
+  Target,
+  AlertCircle,
+  CheckCircle2,
+  Activity,
+} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { SimulationConfigForm } from '@/components/forms/SimulationConfigForm';
-import { NetworkVisualization } from '@/components/charts/NetworkVisualization';
 import { LineChart } from '@/components/charts/LineChart';
-import { BarChart } from '@/components/charts/BarChart';
-import { PropagationMetrics } from '@/components/simulation/PropagationMetrics';
-import { SimulationControls } from '@/components/simulation/SimulationControls';
+import { PayoffMatrix } from '@/components/game-theory/PayoffMatrix';
+import { GameParameters } from './components/GameParameters';
+import { NetworkGraph } from './components/NetworkGraph';
+import { useSimulationStore } from '@/store/simulationStore';
+import { cn } from '@/lib/utils';
 
-// Mock simulation data
-const mockSimulationState = {
-  isRunning: false,
-  isPaused: false,
-  currentStep: 0,
-  totalSteps: 100,
-  progress: 0,
-  elapsedTime: '00:00:00',
-  estimatedTimeRemaining: '00:05:30',
-};
+// ================================================================
+// Types and Mock Data
+// ================================================================
 
-const mockNetworkData = {
-  nodes: [
-    { id: '1', type: 'user', status: 'susceptible', x: 100, y: 100 },
-    { id: '2', type: 'spreader', status: 'infected', x: 200, y: 150 },
-    { id: '3', type: 'moderator', status: 'immune', x: 150, y: 200 },
-    { id: '4', type: 'user', status: 'infected', x: 250, y: 100 },
-    { id: '5', type: 'user', status: 'recovered', x: 300, y: 180 },
-  ],
-  links: [
-    { source: '1', target: '2', strength: 0.8 },
-    { source: '2', target: '3', strength: 0.6 },
-    { source: '2', target: '4', strength: 0.9 },
-    { source: '3', target: '5', strength: 0.7 },
-    { source: '4', target: '5', strength: 0.5 },
-  ]
-};
+// Mock network data generator
+function generateMockNetworkData(nodeCount: number = 100) {
+  const nodes = Array.from({ length: nodeCount }, (_, i) => ({
+    id: `node-${i}`,
+    type: i < 5 ? 'spreader' : i < 15 ? 'moderator' : i < 20 ? 'bot' : 'user',
+    status: i < 5 ? 'infected' : 'susceptible',
+    influence: Math.random() * 5 + 1,
+    connections: 0,
+    label: `N${i}`,
+  })) as any[];
 
-const mockPropagationData = [
-  { step: 0, susceptible: 95, infected: 5, recovered: 0, immune: 0 },
-  { step: 10, susceptible: 78, infected: 15, recovered: 5, immune: 2 },
-  { step: 20, susceptible: 62, infected: 25, recovered: 10, immune: 3 },
-  { step: 30, susceptible: 45, infected: 35, recovered: 15, immune: 5 },
-  { step: 40, susceptible: 30, infected: 30, recovered: 32, immune: 8 },
-  { step: 50, susceptible: 20, infected: 20, recovered: 50, immune: 10 },
-];
+  const links = [];
+  for (let i = 0; i < nodeCount * 2; i++) {
+    const source = Math.floor(Math.random() * nodeCount);
+    const target = Math.floor(Math.random() * nodeCount);
+    if (source !== target) {
+      links.push({
+        source: `node-${source}`,
+        target: `node-${target}`,
+        strength: Math.random() * 0.5 + 0.5,
+        type: 'follow',
+      });
+    }
+  }
 
-const mockMetrics = {
-  peakInfection: 38.5,
-  finalRecovered: 72.3,
-  propagationRate: 0.34,
-  containmentEffectiveness: 0.67,
-  networkDensity: 0.25,
-  clusteringCoefficient: 0.42,
-};
+  nodes.forEach(node => {
+    node.connections = links.filter(l =>
+      l.source === node.id || l.target === node.id
+    ).length;
+  });
 
-const MetricCard: React.FC<{
+  return { nodes, links };
+}
+
+// Animated counter hook
+function useCountUp(end: number, duration: number = 1500) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let startTime: number | null = null;
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime;
+      const progress = Math.min((currentTime - startTime) / duration, 1);
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      setCount(end * easeOutQuart);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setCount(end);
+      }
+    };
+    requestAnimationFrame(animate);
+  }, [end, duration]);
+
+  return count;
+}
+
+// Metrics Card Component
+interface MetricsCardProps {
   title: string;
-  value: string | number;
+  value: number;
   unit?: string;
   icon: React.ReactNode;
   description: string;
-  trend?: number;
-}> = ({ title, value, unit, icon, description, trend }) => (
-  <Card>
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      {icon}
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">
-        {typeof value === 'number' ? value.toFixed(1) : value}
-        {unit && <span className="text-sm font-normal text-slate-600 dark:text-slate-400 ml-1">{unit}</span>}
-      </div>
-      <p className="text-xs text-slate-600 dark:text-slate-400">{description}</p>
-      {trend !== undefined && (
-        <div className="flex items-center mt-2">
-          <TrendingUp className={`w-3 h-3 mr-1 ${trend > 0 ? 'text-green-600' : 'text-red-600'}`} />
-          <span className={`text-xs ${trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {Math.abs(trend)}% from last run
-          </span>
-        </div>
-      )}
-    </CardContent>
-  </Card>
-);
+  animated?: boolean;
+}
 
-export default function SimulationPage() {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [simulationState, setSimulationState] = useState(mockSimulationState);
-  const [playbackSpeed, setPlaybackSpeed] = useState([1]);
-  const [showLabels, setShowLabels] = useState(true);
-  const [highlightPaths, setHighlightPaths] = useState(false);
-
-  const handleStartSimulation = () => {
-    setSimulationState(prev => ({ ...prev, isRunning: true, isPaused: false }));
-    // Simulate progress
-    const interval = setInterval(() => {
-      setSimulationState(prev => {
-        const newStep = prev.currentStep + 1;
-        const newProgress = (newStep / prev.totalSteps) * 100;
-
-        if (newStep >= prev.totalSteps) {
-          clearInterval(interval);
-          return {
-            ...prev,
-            isRunning: false,
-            currentStep: prev.totalSteps,
-            progress: 100
-          };
-        }
-
-        return {
-          ...prev,
-          currentStep: newStep,
-          progress: newProgress
-        };
-      });
-    }, 100 / playbackSpeed[0]);
-  };
-
-  const handlePauseSimulation = () => {
-    setSimulationState(prev => ({ ...prev, isPaused: !prev.isPaused }));
-  };
-
-  const handleStopSimulation = () => {
-    setSimulationState(prev => ({
-      ...prev,
-      isRunning: false,
-      isPaused: false,
-      currentStep: 0,
-      progress: 0
-    }));
-  };
-
-  const handleResetSimulation = () => {
-    setSimulationState(prev => ({
-      ...prev,
-      isRunning: false,
-      isPaused: false,
-      currentStep: 0,
-      progress: 0
-    }));
-  };
-
-  const propagationSeries = [
-    { dataKey: 'susceptible', name: 'Susceptible', color: '#94a3b8' },
-    { dataKey: 'infected', name: 'Infected', color: '#ef4444' },
-    { dataKey: 'recovered', name: 'Recovered', color: '#10b981' },
-    { dataKey: 'immune', name: 'Immune', color: '#3b82f6' },
-  ];
+const MetricsCard: React.FC<MetricsCardProps> = ({
+  title,
+  value,
+  unit = '',
+  icon,
+  description,
+  animated = false,
+}) => {
+  const animatedValue = useCountUp(animated ? value : 0, 1500);
+  const displayValue = animated ? animatedValue : value;
 
   return (
-    <div className="space-y-8">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
-          Misinformation Propagation Simulation
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-2">
-          Model and analyze how misinformation spreads through social networks.
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          {title}
+        </CardTitle>
+        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+          {icon}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold text-gray-900 dark:text-gray-50">
+          {displayValue.toFixed(value % 1 === 0 ? 0 : 1)}{unit}
+        </div>
+        <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+          {description}
         </p>
-      </div>
+      </CardContent>
+    </Card>
+  );
+};
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="network">Network View</TabsTrigger>
-          <TabsTrigger value="metrics">Metrics</TabsTrigger>
-          <TabsTrigger value="configuration">Configuration</TabsTrigger>
-        </TabsList>
+// Status Indicator Component
+const StatusIndicator: React.FC<{ state: string; isRunning: boolean }> = ({ state, isRunning }) => {
+  const getStatusConfig = () => {
+    if (isRunning) {
+      return {
+        label: 'Running',
+        color: 'bg-blue-500',
+        icon: <Loader2 className="h-3 w-3 animate-spin" />,
+      };
+    }
+    switch (state) {
+      case 'completed':
+        return {
+          label: 'Completed',
+          color: 'bg-green-500',
+          icon: <CheckCircle2 className="h-3 w-3" />,
+        };
+      case 'error':
+        return {
+          label: 'Error',
+          color: 'bg-red-500',
+          icon: <AlertCircle className="h-3 w-3" />,
+        };
+      default:
+        return {
+          label: 'Idle',
+          color: 'bg-gray-400',
+          icon: <Activity className="h-3 w-3" />,
+        };
+    }
+  };
 
-        <TabsContent value="overview" className="space-y-6">
-          {/* Simulation Controls */}
+  const config = getStatusConfig();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-900 rounded-full shadow-lg border border-gray-200 dark:border-gray-800"
+    >
+      <div className={cn("h-2 w-2 rounded-full", config.color, isRunning && "animate-pulse")} />
+      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
+        {config.icon}
+        {config.label}
+      </span>
+    </motion.div>
+  );
+};
+
+// ================================================================
+// Main Simulation Page Component
+// ================================================================
+
+export default function SimulationPage() {
+  const {
+    gameParameters,
+    simulationState,
+    isRunning,
+    results,
+    error,
+    setGameParameters,
+    startSimulation,
+    stopSimulation,
+    resetSimulation,
+  } = useSimulationStore();
+
+  const [networkData, setNetworkData] = useState(generateMockNetworkData(gameParameters.network?.size || 1000));
+  const [showResults, setShowResults] = useState(false);
+
+  // Update network when simulation completes
+  useEffect(() => {
+    if (simulationState === 'completed' && results) {
+      setShowResults(true);
+      // Update network with simulation results
+      setNetworkData(generateMockNetworkData(gameParameters.network?.size || 1000));
+    }
+  }, [simulationState, results, gameParameters.network?.size]);
+
+  // Handle parameter submission
+  const handleParametersSubmit = async (params: any) => {
+    setGameParameters(params);
+    await startSimulation();
+  };
+
+  // Mock propagation timeline data
+  const propagationData = Array.from({ length: 20 }, (_, i) => ({
+    step: i * 5,
+    infected: Math.min(100, i * 5 + Math.random() * 10),
+    susceptible: Math.max(0, 100 - i * 5 - Math.random() * 10),
+    recovered: i * 2 + Math.random() * 5,
+  }));
+
+  const propagationSeries = [
+    { dataKey: 'infected', name: 'Infected', color: '#ef4444' },
+    { dataKey: 'susceptible', name: 'Susceptible', color: '#94a3b8' },
+    { dataKey: 'recovered', name: 'Recovered', color: '#10b981' },
+  ];
+
+  // Mock payoff matrix
+  const mockPayoffMatrix = {
+    players: ['Spreader', 'Moderator'] as [string, string],
+    strategies: {
+      Spreader: ['Aggressive', 'Conservative'],
+      Moderator: ['Strict', 'Lenient'],
+    },
+    payoffs: [
+      [
+        { Spreader: 1.2, Moderator: -0.8 },
+        { Spreader: 1.8, Moderator: 0.4 },
+      ],
+      [
+        { Spreader: 0.6, Moderator: -0.3 },
+        { Spreader: 0.9, Moderator: 0.7 },
+      ],
+    ],
+    equilibrium: {
+      strategies: [1, 1] as [number, number],
+      payoffs: { Spreader: 0.9, Moderator: 0.7 },
+      type: 'pure' as const,
+      stability: 0.85,
+      classification: 'strict' as const,
+    },
+  };
+
+  // Mock summary metrics
+  const summaryMetrics = {
+    totalReach: results?.propagationStats?.totalViews || 8542,
+    finalReputation: 72.5,
+    detectionRate: results?.propagationStats?.detectionRate || 68.3,
+    equilibriumStability: results?.equilibrium?.stability || 0.85,
+  };
+
+  return (
+    <div className="space-y-8 relative">
+      {/* Status Indicator */}
+      <StatusIndicator state={simulationState} isRunning={isRunning} />
+
+      {/* Page Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="flex items-center gap-3 mb-3">
+          <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+            <Network className="h-6 w-6 text-green-600" />
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+            Game Theory Simulation
+          </h1>
+        </div>
+        <p className="text-gray-600 dark:text-gray-400 text-lg">
+          Model and visualize fake news propagation through strategic interactions on a social network
+        </p>
+      </motion.div>
+
+      {/* Error Display */}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Simulation Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Global Action Buttons */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="flex items-center gap-3"
+      >
+        <Button
+          onClick={startSimulation}
+          disabled={isRunning}
+          size="lg"
+          className="flex items-center gap-2"
+        >
+          {isRunning ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Running...
+            </>
+          ) : (
+            <>
+              <Play className="h-4 w-4" />
+              Start Simulation
+            </>
+          )}
+        </Button>
+
+        {isRunning && (
+          <Button
+            onClick={stopSimulation}
+            variant="outline"
+            size="lg"
+            className="flex items-center gap-2"
+          >
+            <Square className="h-4 w-4" />
+            Stop Simulation
+          </Button>
+        )}
+
+        <Button
+          onClick={resetSimulation}
+          variant="outline"
+          size="lg"
+          className="flex items-center gap-2"
+        >
+          <RotateCcw className="h-4 w-4" />
+          Reset
+        </Button>
+
+        <div className="flex-1" />
+
+        {showResults && (
+          <Badge variant="outline" className="text-base px-4 py-2">
+            <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
+            Results Available
+          </Badge>
+        )}
+      </motion.div>
+
+      {/* Two-Column Layout: Controls and Visualization */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column: Control Panel (1/3 width) */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="lg:col-span-1"
+        >
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5" />
-                Simulation Control Panel
-              </CardTitle>
-              <CardDescription>
-                Control the simulation execution and monitor progress
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Progress Bar */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Progress</span>
-                    <span>{simulationState.currentStep}/{simulationState.totalSteps} steps</span>
-                  </div>
-                  <Progress value={simulationState.progress} className="h-2" />
-                  <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-                    <span>Elapsed: {simulationState.elapsedTime}</span>
-                    <span>Remaining: {simulationState.estimatedTimeRemaining}</span>
-                  </div>
-                </div>
-
-                {/* Control Buttons */}
-                <div className="flex gap-3">
-                  <Button
-                    onClick={handleStartSimulation}
-                    disabled={simulationState.isRunning}
-                    className="flex items-center gap-2"
-                  >
-                    <Play className="w-4 h-4" />
-                    Start
-                  </Button>
-
-                  <Button
-                    onClick={handlePauseSimulation}
-                    disabled={!simulationState.isRunning}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Pause className="w-4 h-4" />
-                    {simulationState.isPaused ? 'Resume' : 'Pause'}
-                  </Button>
-
-                  <Button
-                    onClick={handleStopSimulation}
-                    disabled={!simulationState.isRunning && !simulationState.isPaused}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Square className="w-4 h-4" />
-                    Stop
-                  </Button>
-
-                  <Button
-                    onClick={handleResetSimulation}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    Reset
-                  </Button>
-
-                  <Button variant="outline" className="flex items-center gap-2 ml-auto">
-                    <Download className="w-4 h-4" />
-                    Export Results
-                  </Button>
-                </div>
-
-                {/* Playback Controls */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t">
-                  <div className="space-y-2">
-                    <Label>Playback Speed</Label>
-                    <div className="space-y-2">
-                      <Slider
-                        value={playbackSpeed}
-                        onValueChange={setPlaybackSpeed}
-                        min={0.1}
-                        max={5}
-                        step={0.1}
-                      />
-                      <div className="text-sm text-slate-600 dark:text-slate-400 text-center">
-                        {playbackSpeed[0]}x speed
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="show-labels"
-                        checked={showLabels}
-                        onCheckedChange={setShowLabels}
-                      />
-                      <Label htmlFor="show-labels">Show Node Labels</Label>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="highlight-paths"
-                        checked={highlightPaths}
-                        onCheckedChange={setHighlightPaths}
-                      />
-                      <Label htmlFor="highlight-paths">Highlight Propagation Paths</Label>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Current Status</Label>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span>State:</span>
-                        <Badge variant={simulationState.isRunning ? "default" : "secondary"}>
-                          {simulationState.isRunning
-                            ? (simulationState.isPaused ? 'Paused' : 'Running')
-                            : 'Stopped'
-                          }
-                        </Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Step:</span>
-                        <span className="font-mono">{simulationState.currentStep}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Key Metrics Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <MetricCard
-              title="Peak Infection"
-              value={mockMetrics.peakInfection}
-              unit="%"
-              icon={<TrendingUp className="h-4 w-4 text-red-500" />}
-              description="Maximum infected population"
-              trend={-2.3}
-            />
-            <MetricCard
-              title="Final Recovery"
-              value={mockMetrics.finalRecovered}
-              unit="%"
-              icon={<Users className="h-4 w-4 text-green-500" />}
-              description="Total recovered population"
-              trend={5.7}
-            />
-            <MetricCard
-              title="Propagation Rate"
-              value={mockMetrics.propagationRate}
-              icon={<Network className="h-4 w-4 text-blue-500" />}
-              description="Average spread velocity"
-              trend={-1.2}
-            />
-            <MetricCard
-              title="Containment Effectiveness"
-              value={`${(mockMetrics.containmentEffectiveness * 100).toFixed(0)}%`}
-              icon={<Activity className="h-4 w-4 text-purple-500" />}
-              description="Moderation success rate"
-              trend={8.1}
-            />
-          </div>
-
-          {/* Propagation Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Population Dynamics</CardTitle>
-              <CardDescription>
-                Evolution of different population states over time
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <LineChart
-                data={mockPropagationData}
-                series={propagationSeries}
-                xAxisKey="step"
-                height={300}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="network" className="space-y-6">
-          {/* Network Visualization */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Network className="w-5 h-5" />
-                Network Visualization
-              </CardTitle>
-              <CardDescription>
-                Interactive view of the social network and information propagation
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[500px] border rounded-lg bg-slate-50 dark:bg-slate-900">
-                <NetworkVisualization
-                  data={mockNetworkData}
-                  showLabels={showLabels}
-                  highlightPaths={highlightPaths}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Network Statistics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Network Properties</CardTitle>
-                <CardDescription>Structural characteristics of the network</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-slate-600 dark:text-slate-400">Nodes:</span>
-                    <span className="ml-2 font-mono font-bold">{mockNetworkData.nodes.length}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-600 dark:text-slate-400">Edges:</span>
-                    <span className="ml-2 font-mono font-bold">{mockNetworkData.links.length}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-600 dark:text-slate-400">Density:</span>
-                    <span className="ml-2 font-mono font-bold">{mockMetrics.networkDensity}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-600 dark:text-slate-400">Clustering:</span>
-                    <span className="ml-2 font-mono font-bold">{mockMetrics.clusteringCoefficient}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Node Types Distribution</Label>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span>Regular Users</span>
-                      <span>60%</span>
-                    </div>
-                    <Progress value={60} className="h-1" />
-
-                    <div className="flex justify-between text-xs">
-                      <span>Spreaders</span>
-                      <span>20%</span>
-                    </div>
-                    <Progress value={20} className="h-1" />
-
-                    <div className="flex justify-between text-xs">
-                      <span>Moderators</span>
-                      <span>20%</span>
-                    </div>
-                    <Progress value={20} className="h-1" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Current State Distribution</CardTitle>
-                <CardDescription>Population breakdown by infection status</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 border rounded-lg">
-                      <div className="text-lg font-bold text-slate-600">45</div>
-                      <div className="text-xs text-slate-500">Susceptible</div>
-                    </div>
-                    <div className="text-center p-3 border rounded-lg">
-                      <div className="text-lg font-bold text-red-600">12</div>
-                      <div className="text-xs text-slate-500">Infected</div>
-                    </div>
-                    <div className="text-center p-3 border rounded-lg">
-                      <div className="text-lg font-bold text-green-600">30</div>
-                      <div className="text-xs text-slate-500">Recovered</div>
-                    </div>
-                    <div className="text-center p-3 border rounded-lg">
-                      <div className="text-lg font-bold text-blue-600">13</div>
-                      <div className="text-xs text-slate-500">Immune</div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span>Infection Rate</span>
-                      <span>12%</span>
-                    </div>
-                    <Progress value={12} className="h-2" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="metrics" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Detailed Propagation Metrics */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Propagation Analysis</CardTitle>
-                <CardDescription>Detailed metrics on information spread patterns</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PropagationMetrics data={mockPropagationData} />
-              </CardContent>
-            </Card>
-
-            {/* Agent Performance */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Agent Performance</CardTitle>
-                <CardDescription>Effectiveness of different agent types</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Spreader Success Rate</span>
-                      <span className="text-sm font-mono">73%</span>
-                    </div>
-                    <Progress value={73} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Moderator Detection Rate</span>
-                      <span className="text-sm font-mono">67%</span>
-                    </div>
-                    <Progress value={67} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm">User Resistance Rate</span>
-                      <span className="text-sm font-mono">45%</span>
-                    </div>
-                    <Progress value={45} />
-                  </div>
-
-                  <div className="pt-4 border-t">
-                    <h4 className="font-medium mb-2">Agent Strategy Distribution</h4>
-                    <BarChart
-                      data={[
-                        { strategy: 'Aggressive', count: 25 },
-                        { strategy: 'Moderate', count: 45 },
-                        { strategy: 'Conservative', count: 30 },
-                      ]}
-                      series={[{ dataKey: 'count', name: 'Agents', color: '#3b82f6' }]}
-                      xAxisKey="strategy"
-                      height={200}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Time Series Analysis */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Transmission Dynamics</CardTitle>
-              <CardDescription>Rate of information transmission over time</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <LineChart
-                data={mockPropagationData.map((d, i) => ({
-                  ...d,
-                  transmissionRate: Math.max(0, (d.infected - (i > 0 ? mockPropagationData[i-1].infected : 0)) / 10),
-                  detectionRate: Math.max(0, (d.recovered - (i > 0 ? mockPropagationData[i-1].recovered : 0)) / 10),
-                }))}
-                series={[
-                  { dataKey: 'transmissionRate', name: 'Transmission Rate', color: '#ef4444' },
-                  { dataKey: 'detectionRate', name: 'Detection Rate', color: '#10b981' },
-                ]}
-                xAxisKey="step"
-                height={300}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="configuration" className="space-y-6">
-          {/* Simulation Configuration */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="w-5 h-5" />
+                <Target className="h-5 w-5 text-purple-600" />
                 Simulation Parameters
               </CardTitle>
               <CardDescription>
-                Configure the simulation settings and parameters
+                Configure the game theory simulation settings
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <SimulationConfigForm
-                onSubmit={(config) => {
-                  console.log('Simulation config:', config);
-                  handleResetSimulation();
-                }}
-                isLoading={simulationState.isRunning}
+              <GameParameters
+                onSubmit={handleParametersSubmit}
+                isLoading={isRunning}
               />
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </motion.div>
+
+        {/* Right Column: Network Visualization (2/3 width) */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="lg:col-span-2"
+        >
+          <NetworkGraph
+            data={networkData}
+            width={800}
+            height={600}
+            showLabels={false}
+            highlightPaths={isRunning}
+          />
+        </motion.div>
+      </div>
+
+      {/* Detailed Results Section (Conditional) */}
+      <AnimatePresence>
+        {showResults && results && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -40 }}
+            transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+            className="space-y-8"
+          >
+            {/* Summary Metrics */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-6">
+                Simulation Results
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <MetricsCard
+                  title="Total Reach"
+                  value={summaryMetrics.totalReach}
+                  icon={<TrendingUp className="h-5 w-5 text-blue-600" />}
+                  description="Total nodes reached"
+                  animated
+                />
+                <MetricsCard
+                  title="Platform Reputation"
+                  value={summaryMetrics.finalReputation}
+                  unit="%"
+                  icon={<Target className="h-5 w-5 text-green-600" />}
+                  description="Final reputation score"
+                  animated
+                />
+                <MetricsCard
+                  title="Detection Rate"
+                  value={summaryMetrics.detectionRate}
+                  unit="%"
+                  icon={<BarChart3 className="h-5 w-5 text-purple-600" />}
+                  description="Misinformation detection"
+                  animated
+                />
+                <MetricsCard
+                  title="Equilibrium Stability"
+                  value={summaryMetrics.equilibriumStability * 100}
+                  unit="%"
+                  icon={<Activity className="h-5 w-5 text-yellow-600" />}
+                  description="Nash equilibrium stability"
+                  animated
+                />
+              </div>
+            </motion.div>
+
+            {/* Tabbed Results */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+            >
+              <Tabs defaultValue="summary" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="summary">Summary</TabsTrigger>
+                  <TabsTrigger value="propagation">Propagation Timeline</TabsTrigger>
+                  <TabsTrigger value="equilibrium">Game Outcome</TabsTrigger>
+                </TabsList>
+
+                {/* Summary Tab */}
+                <TabsContent value="summary" className="space-y-6 mt-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Simulation Overview</CardTitle>
+                      <CardDescription>High-level summary of simulation outcomes</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                            Network Characteristics
+                          </h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span>Network Size:</span>
+                              <span className="font-mono">{gameParameters.network?.size || 1000}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Network Type:</span>
+                              <span className="font-mono">{gameParameters.network?.type || 'small_world'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Avg Degree:</span>
+                              <span className="font-mono">{gameParameters.network?.parameters?.averageDegree || 6}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                            Agent Distribution
+                          </h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span>Spreaders:</span>
+                              <span className="font-mono">
+                                {gameParameters.numPlayers?.spreaders || 10}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Fact-Checkers:</span>
+                              <span className="font-mono">
+                                {gameParameters.numPlayers?.factCheckers || 5}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Users:</span>
+                              <span className="font-mono">
+                                {gameParameters.numPlayers?.users || 100}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Alert>
+                        <CheckCircle2 className="h-4 w-4" />
+                        <AlertTitle>Simulation Completed Successfully</AlertTitle>
+                        <AlertDescription>
+                          The simulation reached convergence after {gameParameters.dynamics?.timeHorizon || 50} time steps.
+                          The network achieved a stable equilibrium with {(summaryMetrics.equilibriumStability * 100).toFixed(1)}% stability.
+                        </AlertDescription>
+                      </Alert>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Propagation Timeline Tab */}
+                <TabsContent value="propagation" className="space-y-6 mt-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Information Propagation Over Time</CardTitle>
+                      <CardDescription>
+                        Tracking of infected, susceptible, and recovered nodes throughout the simulation
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <LineChart
+                        data={propagationData}
+                        series={propagationSeries}
+                        xAxisKey="step"
+                      />
+                      <div className="grid grid-cols-3 gap-4 mt-6">
+                        <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 text-center">
+                          <div className="text-lg font-bold text-red-700 dark:text-red-400">
+                            {propagationData[propagationData.length - 1]?.infected.toFixed(0) || 0}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            Final Infected
+                          </div>
+                        </div>
+                        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 text-center">
+                          <div className="text-lg font-bold text-gray-700 dark:text-gray-300">
+                            {propagationData[propagationData.length - 1]?.susceptible.toFixed(0) || 0}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            Final Susceptible
+                          </div>
+                        </div>
+                        <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 text-center">
+                          <div className="text-lg font-bold text-green-700 dark:text-green-400">
+                            {propagationData[propagationData.length - 1]?.recovered.toFixed(0) || 0}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            Final Recovered
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Game Outcome Tab */}
+                <TabsContent value="equilibrium" className="space-y-6 mt-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Strategic Equilibrium Analysis</CardTitle>
+                      <CardDescription>
+                        Final Nash equilibrium and player payoffs from the game theory model
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <PayoffMatrix
+                        data={mockPayoffMatrix}
+                        title="Spreader vs. Moderator Game"
+                        highlightEquilibrium
+                      />
+                      <div className="mt-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                          Equilibrium Interpretation
+                        </h4>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          The simulation converged to a {mockPayoffMatrix.equilibrium.type} strategy Nash equilibrium
+                          where spreaders adopt a <span className="font-semibold">Conservative</span> strategy and
+                          moderators adopt a <span className="font-semibold">Lenient</span> policy. This equilibrium
+                          exhibits {(mockPayoffMatrix.equilibrium.stability * 100).toFixed(0)}% stability, indicating
+                          that neither player has an incentive to unilaterally deviate from their chosen strategy.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

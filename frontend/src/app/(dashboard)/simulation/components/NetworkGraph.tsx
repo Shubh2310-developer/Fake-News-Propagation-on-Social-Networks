@@ -2,564 +2,445 @@
 
 "use client";
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import * as d3 from 'd3';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { ZoomIn, ZoomOut, RotateCcw, Download, Network, Info } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { NetworkVisualization } from "@/components/charts/NetworkVisualization";
+import { NetworkData, NodeData } from "@/types/network";
+import { Spinner } from "@/components/ui/spinner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import { Info, Activity, Users, Network as NetworkIcon } from "lucide-react";
 
-// Types for network data
-interface NodeData extends d3.SimulationNodeDatum {
-  id: string;
-  type: 'user' | 'spreader' | 'moderator' | 'bot';
-  status: 'susceptible' | 'infected' | 'recovered' | 'immune';
-  influence: number;
-  connections: number;
-  label?: string;
-  group?: number;
+/**
+ * Simulation step data representing the state at a specific time point
+ */
+export interface SimulationStep {
+  time: number;
+  nodeStates: Record<
+    string,
+    {
+      status: "susceptible" | "infected" | "recovered" | "immune";
+      influence_score?: number;
+      credibility_score?: number;
+    }
+  >;
 }
 
-interface LinkData extends d3.SimulationLinkDatum<NodeData> {
-  source: string | NodeData;
-  target: string | NodeData;
-  strength: number;
-  type?: 'trust' | 'follow' | 'share';
-  weight?: number;
-}
-
-interface NetworkData {
-  nodes: NodeData[];
-  links: LinkData[];
-}
-
+/**
+ * Props for the NetworkGraph wrapper component
+ */
 interface NetworkGraphProps {
-  data: NetworkData;
-  width?: number;
-  height?: number;
-  showLabels?: boolean;
-  highlightPaths?: boolean;
+  /** Initial network structure with nodes and edges */
+  data: NetworkData | null;
+  /** Stream of simulation updates over time */
+  simulationResults?: SimulationStep[];
+  /** Whether the simulation is currently running */
+  isRunning?: boolean;
+  /** Callback when a node is clicked */
   onNodeClick?: (node: NodeData) => void;
-  onNodeHover?: (node: NodeData | null) => void;
+  /** Optional width override */
+  width?: number;
+  /** Optional height override */
+  height?: number;
+  /** Optional className for container styling */
   className?: string;
 }
 
-// Color schemes for different node types and statuses
-const NODE_COLORS = {
-  type: {
-    user: '#94a3b8',      // slate-400
-    spreader: '#ef4444',   // red-500
-    moderator: '#3b82f6',  // blue-500
-    bot: '#8b5cf6'         // violet-500
-  },
-  status: {
-    susceptible: '#e2e8f0', // slate-200
-    infected: '#fca5a5',    // red-300
-    recovered: '#86efac',   // green-300
-    immune: '#93c5fd'       // blue-300
-  }
-};
+/**
+ * Color schemes for node visualization
+ */
+const STATUS_COLORS = {
+  susceptible: "#e2e8f0", // slate-200 - not yet exposed
+  infected: "#ef4444", // red-500 - currently spreading misinformation
+  recovered: "#22c55e", // green-500 - no longer susceptible
+  immune: "#3b82f6", // blue-500 - resistant to misinformation
+} as const;
 
-const LINK_COLORS = {
-  trust: '#10b981',    // emerald-500
-  follow: '#6b7280',   // gray-500
-  share: '#f59e0b'     // amber-500
-};
+const USER_TYPE_COLORS = {
+  spreader: "#f59e0b", // amber-500
+  fact_checker: "#22c55e", // green-500
+  platform: "#6366f1", // indigo-500
+  regular_user: "#94a3b8", // slate-400
+} as const;
 
-export const NetworkGraph: React.FC<NetworkGraphProps> = ({
+/**
+ * NetworkGraph: Smart wrapper component that manages data and state
+ * for the underlying NetworkVisualization engine.
+ *
+ * Responsibilities:
+ * - Data management and transformation
+ * - Loading and empty states
+ * - Live simulation animation
+ * - State tracking and updates
+ * - Prop delegation to visualization engine
+ */
+export function NetworkGraph({
   data,
+  simulationResults = [],
+  isRunning = false,
+  onNodeClick,
   width = 800,
   height = 600,
-  showLabels = true,
-  highlightPaths = false,
-  onNodeClick,
-  onNodeHover,
-  className = ""
-}) => {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const simulationRef = useRef<d3.Simulation<NodeData, LinkData> | null>(null);
+  className,
+}: NetworkGraphProps) {
+  // Current simulation time step index
+  const [currentStep, setCurrentStep] = useState(0);
 
+  // Hovered node for tooltip display
   const [hoveredNode, setHoveredNode] = useState<NodeData | null>(null);
-  const [selectedNode, setSelectedNode] = useState<NodeData | null>(null);
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [forceStrength, setForceStrength] = useState([30]);
-  const [linkDistance, setLinkDistance] = useState([50]);
-  const [showNodeInfo, setShowNodeInfo] = useState(true);
 
-  // Initialize and update D3 simulation
-  const initializeSimulation = useCallback(() => {
-    if (!svgRef.current || !data.nodes.length) return;
+  // Tooltip position
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
-    const svg = d3.select(svgRef.current);
-    const container = svg.select('.network-container');
-
-    // Clear existing elements
-    container.selectAll('*').remove();
-
-    // Create groups for different layers
-    const linkGroup = container.append('g').attr('class', 'links');
-    const nodeGroup = container.append('g').attr('class', 'nodes');
-    const labelGroup = container.append('g').attr('class', 'labels');
-
-    // Create zoom behavior
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.1, 4])
-      .on('zoom', (event) => {
-        container.attr('transform', event.transform);
-        setZoomLevel(event.transform.k);
-      });
-
-    svg.call(zoom);
-
-    // Create simulation
-    const simulation = d3.forceSimulation<NodeData>(data.nodes)
-      .force('link', d3.forceLink<NodeData, LinkData>(data.links)
-        .id(d => d.id)
-        .distance(linkDistance[0])
-        .strength(0.1))
-      .force('charge', d3.forceManyBody().strength(-forceStrength[0]))
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius(d => Math.sqrt(d.influence || 1) * 8 + 5));
-
-    simulationRef.current = simulation;
-
-    // Create links
-    const links = linkGroup
-      .selectAll('line')
-      .data(data.links)
-      .enter()
-      .append('line')
-      .attr('class', 'network-link')
-      .attr('stroke', d => LINK_COLORS[d.type as keyof typeof LINK_COLORS] || '#6b7280')
-      .attr('stroke-width', d => Math.sqrt(d.strength || 1) * 2)
-      .attr('stroke-opacity', 0.6);
-
-    // Create nodes
-    const nodes = nodeGroup
-      .selectAll('circle')
-      .data(data.nodes)
-      .enter()
-      .append('circle')
-      .attr('class', 'network-node')
-      .attr('r', d => Math.sqrt(d.influence || 1) * 8 + 5)
-      .attr('fill', d => NODE_COLORS.type[d.type])
-      .attr('stroke', d => NODE_COLORS.status[d.status])
-      .attr('stroke-width', 3)
-      .style('cursor', 'pointer')
-      .call(d3.drag<SVGCircleElement, NodeData>()
-        .on('start', (event, d) => {
-          if (!event.active) simulation.alphaTarget(0.3).restart();
-          d.fx = d.x;
-          d.fy = d.y;
-        })
-        .on('drag', (event, d) => {
-          d.fx = event.x;
-          d.fy = event.y;
-        })
-        .on('end', (event, d) => {
-          if (!event.active) simulation.alphaTarget(0);
-          d.fx = null;
-          d.fy = null;
-        }));
-
-    // Add node labels
-    const labels = labelGroup
-      .selectAll('text')
-      .data(data.nodes)
-      .enter()
-      .append('text')
-      .attr('class', 'network-label')
-      .attr('text-anchor', 'middle')
-      .attr('dy', '.35em')
-      .attr('font-size', '10px')
-      .attr('font-weight', 'bold')
-      .attr('fill', '#1f2937')
-      .attr('pointer-events', 'none')
-      .style('display', showLabels ? 'block' : 'none')
-      .text(d => d.label || d.id);
-
-    // Node interaction handlers
-    nodes
-      .on('mouseover', (event, d) => {
-        setHoveredNode(d);
-        onNodeHover?.(d);
-
-        // Highlight connected nodes and links
-        if (highlightPaths) {
-          const connectedNodes = new Set<string>();
-
-          links
-            .style('stroke-opacity', (l: any) => {
-              const isConnected = (l.source.id === d.id || l.target.id === d.id);
-              if (isConnected) {
-                connectedNodes.add(l.source.id);
-                connectedNodes.add(l.target.id);
-              }
-              return isConnected ? 1 : 0.1;
-            })
-            .style('stroke-width', (l: any) =>
-              (l.source.id === d.id || l.target.id === d.id) ? 4 : 1);
-
-          nodes
-            .style('opacity', (n: any) =>
-              connectedNodes.has(n.id) || n.id === d.id ? 1 : 0.3);
-        }
-      })
-      .on('mouseout', () => {
-        setHoveredNode(null);
-        onNodeHover?.(null);
-
-        if (highlightPaths) {
-          links.style('stroke-opacity', 0.6).style('stroke-width', null);
-          nodes.style('opacity', 1);
-        }
-      })
-      .on('click', (event, d) => {
-        setSelectedNode(d);
-        onNodeClick?.(d);
-        event.stopPropagation();
-      });
-
-    // Update positions on simulation tick
-    simulation.on('tick', () => {
-      links
-        .attr('x1', (d: any) => d.source.x)
-        .attr('y1', (d: any) => d.source.y)
-        .attr('x2', (d: any) => d.target.x)
-        .attr('y2', (d: any) => d.target.y);
-
-      nodes
-        .attr('cx', d => d.x!)
-        .attr('cy', d => d.y!);
-
-      labels
-        .attr('x', d => d.x!)
-        .attr('y', d => d.y!);
-    });
-
-    // Clear selection when clicking on empty space
-    svg.on('click', () => {
-      setSelectedNode(null);
-    });
-
-  }, [data, width, height, showLabels, highlightPaths, forceStrength, linkDistance, onNodeClick, onNodeHover]);
-
-  // Update simulation forces when parameters change
+  /**
+   * Reset simulation step when new results arrive
+   */
   useEffect(() => {
-    if (simulationRef.current) {
-      simulationRef.current
-        .force('charge', d3.forceManyBody().strength(-forceStrength[0]))
-        .force('link', d3.forceLink<NodeData, LinkData>(data.links)
-          .id(d => d.id)
-          .distance(linkDistance[0])
-          .strength(0.1))
-        .alpha(0.3)
-        .restart();
+    setCurrentStep(0);
+  }, [simulationResults]);
+
+  /**
+   * Animate through simulation steps when running
+   */
+  useEffect(() => {
+    if (!isRunning || simulationResults.length === 0) {
+      return;
     }
-  }, [forceStrength, linkDistance, data.links]);
 
-  // Initialize simulation on component mount and data change
-  useEffect(() => {
-    initializeSimulation();
+    const interval = setInterval(() => {
+      setCurrentStep((prev) => {
+        // Loop back to start when reaching the end
+        if (prev >= simulationResults.length - 1) {
+          return 0;
+        }
+        return prev + 1;
+      });
+    }, 500); // 500ms per step for smooth animation
 
-    return () => {
-      if (simulationRef.current) {
-        simulationRef.current.stop();
-      }
+    return () => clearInterval(interval);
+  }, [isRunning, simulationResults]);
+
+  /**
+   * Transform network data based on current simulation step
+   * This creates dynamic node updates during simulation playback
+   */
+  const transformedData = useMemo<NetworkData | null>(() => {
+    if (!data) return null;
+
+    // If no simulation results, return original data
+    if (simulationResults.length === 0 || !isRunning) {
+      return data;
+    }
+
+    // Get current step data
+    const stepData = simulationResults[currentStep];
+    if (!stepData) return data;
+
+    // Create new nodes array with updated states
+    const updatedNodes = data.nodes.map((node) => {
+      const nodeState = stepData.nodeStates[node.id];
+
+      if (!nodeState) return node;
+
+      // Calculate color based on status during simulation
+      const statusColor = STATUS_COLORS[nodeState.status];
+
+      // Update node visual properties
+      return {
+        ...node,
+        visual: {
+          ...node.visual,
+          color: statusColor,
+          size:
+            nodeState.influence_score !== undefined
+              ? Math.sqrt(nodeState.influence_score) * 10
+              : node.visual.size,
+          strokeColor:
+            nodeState.status === "infected" ? "#dc2626" : node.visual.strokeColor,
+          strokeWidth: nodeState.status === "infected" ? 3 : node.visual.strokeWidth,
+        },
+      };
+    });
+
+    return {
+      ...data,
+      nodes: updatedNodes,
     };
-  }, [initializeSimulation]);
+  }, [data, simulationResults, currentStep, isRunning]);
 
-  // Update label visibility
-  useEffect(() => {
-    if (svgRef.current) {
-      d3.select(svgRef.current)
-        .selectAll('.network-label')
-        .style('display', showLabels ? 'block' : 'none');
+  /**
+   * Handle node hover for tooltip
+   */
+  const handleNodeHover = React.useCallback((node: NodeData | null, event?: MouseEvent) => {
+    setHoveredNode(node);
+    if (node && event) {
+      setTooltipPosition({ x: event.clientX, y: event.clientY });
     }
-  }, [showLabels]);
+  }, []);
 
-  // Zoom controls
-  const handleZoomIn = () => {
-    if (svgRef.current) {
-      d3.select(svgRef.current)
-        .transition()
-        .duration(300)
-        .call(
-          d3.zoom<SVGSVGElement, unknown>().scaleBy as any,
-          1.5
-        );
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (svgRef.current) {
-      d3.select(svgRef.current)
-        .transition()
-        .duration(300)
-        .call(
-          d3.zoom<SVGSVGElement, unknown>().scaleBy as any,
-          1 / 1.5
-        );
-    }
-  };
-
-  const handleResetZoom = () => {
-    if (svgRef.current) {
-      d3.select(svgRef.current)
-        .transition()
-        .duration(500)
-        .call(
-          d3.zoom<SVGSVGElement, unknown>().transform as any,
-          d3.zoomIdentity
-        );
-    }
-  };
-
-  const handleExportGraph = () => {
-    if (svgRef.current) {
-      const svgData = new XMLSerializer().serializeToString(svgRef.current);
-      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      const svgUrl = URL.createObjectURL(svgBlob);
-
-      const downloadLink = document.createElement('a');
-      downloadLink.href = svgUrl;
-      downloadLink.download = 'network-graph.svg';
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      URL.revokeObjectURL(svgUrl);
-    }
-  };
-
-  return (
-    <Card className={className}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Network className="w-5 h-5" />
-              Network Visualization
-            </CardTitle>
-            <CardDescription>
-              Interactive force-directed graph showing network structure and information flow
-            </CardDescription>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleZoomIn}>
-              <ZoomIn className="w-4 h-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleZoomOut}>
-              <ZoomOut className="w-4 h-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleResetZoom}>
-              <RotateCcw className="w-4 h-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExportGraph}>
-              <Download className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* Control Panel */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Force Strength</Label>
-            <Slider
-              value={forceStrength}
-              onValueChange={setForceStrength}
-              min={10}
-              max={100}
-              step={5}
-            />
-            <div className="text-xs text-slate-600 dark:text-slate-400 text-center">
-              {forceStrength[0]}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Link Distance</Label>
-            <Slider
-              value={linkDistance}
-              onValueChange={setLinkDistance}
-              min={20}
-              max={150}
-              step={10}
-            />
-            <div className="text-xs text-slate-600 dark:text-slate-400 text-center">
-              {linkDistance[0]}px
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="show-labels"
-                checked={showLabels}
-                onCheckedChange={() => {}} // Controlled by parent
-              />
-              <Label htmlFor="show-labels" className="text-sm">Show Labels</Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="show-info"
-                checked={showNodeInfo}
-                onCheckedChange={setShowNodeInfo}
-              />
-              <Label htmlFor="show-info" className="text-sm">Node Info</Label>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Zoom Level</Label>
-            <div className="text-sm font-mono text-center py-2">
-              {(zoomLevel * 100).toFixed(0)}%
-            </div>
-          </div>
-        </div>
-
-        {/* Legend */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-          <div>
-            <h4 className="font-medium mb-2">Node Types</h4>
-            <div className="space-y-1">
-              {Object.entries(NODE_COLORS.type).map(([type, color]) => (
-                <div key={type} className="flex items-center gap-2 text-sm">
-                  <div
-                    className="w-3 h-3 rounded-full border"
-                    style={{ backgroundColor: color }}
-                  />
-                  <span className="capitalize">{type}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h4 className="font-medium mb-2">Node Status</h4>
-            <div className="space-y-1">
-              {Object.entries(NODE_COLORS.status).map(([status, color]) => (
-                <div key={status} className="flex items-center gap-2 text-sm">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: color, border: '2px solid #374151' }}
-                  />
-                  <span className="capitalize">{status}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Main Graph Area */}
-        <div
-          ref={containerRef}
-          className="relative border rounded-lg bg-white dark:bg-slate-900 overflow-hidden"
-          style={{ height: height }}
+  /**
+   * Loading State: Show spinner while data is being loaded
+   */
+  if (!data) {
+    return (
+      <div
+        className={cn(
+          "flex flex-col items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800",
+          "bg-white dark:bg-gray-900 p-12",
+          className
+        )}
+        style={{ height }}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col items-center gap-4"
         >
-          <svg
-            ref={svgRef}
+          <Spinner className="h-12 w-12 text-primary-600" />
+          <div className="text-center space-y-2">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+              Loading Network
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Generating network structure...
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  /**
+   * Empty State: Show message when no nodes are available
+   */
+  if (data.nodes.length === 0) {
+    return (
+      <div
+        className={cn(
+          "flex flex-col items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800",
+          "bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 p-12",
+          className
+        )}
+        style={{ height }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="flex flex-col items-center gap-4 max-w-md text-center"
+        >
+          <div className="p-4 rounded-full bg-gray-200 dark:bg-gray-800">
+            <NetworkIcon className="h-12 w-12 text-gray-400 dark:text-gray-600" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              No Network Data
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Configure simulation parameters and generate a network to visualize
+              the social network structure and information flow.
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  /**
+   * Main Visualization: Render the network graph
+   */
+  return (
+    <TooltipProvider>
+      <div className={cn("relative", className)}>
+        {/* Simulation Progress Indicator */}
+        <AnimatePresence>
+          {isRunning && simulationResults.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute top-4 left-4 z-20 flex items-center gap-3 px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg"
+            >
+              <Activity className="h-4 w-4 text-green-500 animate-pulse" />
+              <div className="flex flex-col">
+                <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                  Simulation Running
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  Step {currentStep + 1} / {simulationResults.length}
+                </span>
+              </div>
+              <div className="ml-2 h-1.5 w-32 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-green-500 to-blue-500"
+                  initial={{ width: 0 }}
+                  animate={{
+                    width: `${((currentStep + 1) / simulationResults.length) * 100}%`,
+                  }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Network Statistics Panel */}
+        <motion.div
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          className="absolute top-4 right-4 z-20 px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="h-4 w-4 text-gray-500" />
+            <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
+              Network Stats
+            </span>
+          </div>
+          <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+            <div className="flex justify-between gap-4">
+              <span>Nodes:</span>
+              <span className="font-mono font-medium text-gray-900 dark:text-gray-100">
+                {data.nodes.length}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span>Edges:</span>
+              <span className="font-mono font-medium text-gray-900 dark:text-gray-100">
+                {data.links.length}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span>Density:</span>
+              <span className="font-mono font-medium text-gray-900 dark:text-gray-100">
+                {data.statistics.basic.density.toFixed(3)}
+              </span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Node Hover Tooltip */}
+        <AnimatePresence>
+          {hoveredNode && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.15 }}
+              className="absolute z-30 pointer-events-none"
+              style={{
+                left: tooltipPosition.x + 15,
+                top: tooltipPosition.y + 15,
+              }}
+            >
+              <div className="px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white rounded-lg shadow-xl border border-gray-700 max-w-xs">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-700">
+                  <Info className="h-3.5 w-3.5 text-blue-400" />
+                  <span className="text-xs font-semibold">Node Information</span>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-400">ID:</span>
+                    <span className="font-mono text-gray-100">
+                      {hoveredNode.id}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-400">Type:</span>
+                    <span
+                      className="font-medium capitalize px-2 py-0.5 rounded text-xs"
+                      style={{
+                        backgroundColor:
+                          USER_TYPE_COLORS[
+                            hoveredNode.user_type as keyof typeof USER_TYPE_COLORS
+                          ] + "30",
+                        color:
+                          USER_TYPE_COLORS[
+                            hoveredNode.user_type as keyof typeof USER_TYPE_COLORS
+                          ],
+                      }}
+                    >
+                      {hoveredNode.user_type.replace("_", " ")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-400">Influence:</span>
+                    <span className="font-mono text-gray-100">
+                      {hoveredNode.influence_score.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-400">Credibility:</span>
+                    <span className="font-mono text-gray-100">
+                      {hoveredNode.credibility_score.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-400">Connections:</span>
+                    <span className="font-mono text-gray-100">
+                      {hoveredNode.centrality.degree}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Main Visualization Component */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950"
+        >
+          <NetworkVisualization
+            data={transformedData}
             width={width}
             height={height}
-            className="w-full h-full"
-          >
-            <defs>
-              {/* Gradient definitions for better visual appeal */}
-              <radialGradient id="nodeGradient" cx="30%" cy="30%">
-                <stop offset="0%" stopColor="rgba(255,255,255,0.8)" />
-                <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-              </radialGradient>
+            onNodeClick={onNodeClick}
+            onNodeHover={handleNodeHover}
+          />
+        </motion.div>
 
-              {/* Arrow markers for directed links */}
-              <marker
-                id="arrowhead"
-                markerWidth="10"
-                markerHeight="7"
-                refX="9"
-                refY="3.5"
-                orient="auto"
-              >
-                <polygon
-                  points="0 0, 10 3.5, 0 7"
-                  fill="#6b7280"
-                />
-              </marker>
-            </defs>
-
-            <g className="network-container" />
-          </svg>
-
-          {/* Node Information Panel */}
-          {showNodeInfo && (hoveredNode || selectedNode) && (
-            <div className="absolute top-4 right-4 p-3 bg-white dark:bg-slate-800 rounded-lg shadow-lg border max-w-xs">
-              <div className="flex items-center gap-2 mb-2">
-                <Info className="w-4 h-4" />
-                <span className="font-medium">Node Information</span>
-              </div>
-
-              {(hoveredNode || selectedNode) && (
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span>ID:</span>
-                    <span className="font-mono">{(hoveredNode || selectedNode)!.id}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Type:</span>
-                    <Badge variant="outline" className="text-xs">
-                      {(hoveredNode || selectedNode)!.type}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Status:</span>
-                    <Badge variant="outline" className="text-xs">
-                      {(hoveredNode || selectedNode)!.status}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Influence:</span>
-                    <span className="font-mono">{(hoveredNode || selectedNode)!.influence?.toFixed(2) || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Connections:</span>
-                    <span className="font-mono">{(hoveredNode || selectedNode)!.connections || 0}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Network Statistics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div className="text-center p-2 bg-slate-50 dark:bg-slate-800 rounded">
-            <div className="font-bold text-lg">{data.nodes.length}</div>
-            <div className="text-slate-600 dark:text-slate-400">Nodes</div>
+        {/* Legend */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="absolute bottom-4 left-4 z-20 px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg"
+        >
+          <div className="text-xs font-medium text-gray-900 dark:text-gray-100 mb-2">
+            {isRunning ? "Node Status" : "User Types"}
           </div>
-          <div className="text-center p-2 bg-slate-50 dark:bg-slate-800 rounded">
-            <div className="font-bold text-lg">{data.links.length}</div>
-            <div className="text-slate-600 dark:text-slate-400">Edges</div>
+          <div className="space-y-1.5">
+            {isRunning
+              ? Object.entries(STATUS_COLORS).map(([status, color]) => (
+                  <div key={status} className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full border border-gray-300 dark:border-gray-700"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="text-xs text-gray-600 dark:text-gray-400 capitalize">
+                      {status}
+                    </span>
+                  </div>
+                ))
+              : Object.entries(USER_TYPE_COLORS).map(([type, color]) => (
+                  <div key={type} className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full border border-gray-300 dark:border-gray-700"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="text-xs text-gray-600 dark:text-gray-400 capitalize">
+                      {type.replace("_", " ")}
+                    </span>
+                  </div>
+                ))}
           </div>
-          <div className="text-center p-2 bg-slate-50 dark:bg-slate-800 rounded">
-            <div className="font-bold text-lg">
-              {((data.links.length * 2) / (data.nodes.length * (data.nodes.length - 1))).toFixed(3)}
-            </div>
-            <div className="text-slate-600 dark:text-slate-400">Density</div>
-          </div>
-          <div className="text-center p-2 bg-slate-50 dark:bg-slate-800 rounded">
-            <div className="font-bold text-lg">
-              {((data.links.length * 2) / data.nodes.length).toFixed(1)}
-            </div>
-            <div className="text-slate-600 dark:text-slate-400">Avg Degree</div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </motion.div>
+      </div>
+    </TooltipProvider>
   );
-};
+}

@@ -2,541 +2,671 @@
 
 "use client";
 
-import React, { useState } from 'react';
-import { Download, Play, Brain, Gauge, Settings, FileText, BarChart3, Database, CheckCircle, XCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Sparkles,
+  FileText,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Brain,
+  Loader2,
+  BarChart2,
+  Info
+} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ClassifierConfigForm } from '@/components/forms/ClassifierConfigForm';
-import { DataUploadForm } from '@/components/forms/DataUploadForm';
-import { ModelPerformance } from '@/components/charts/ModelPerformance';
-import { ConfusionMatrix } from '@/components/charts/ConfusionMatrix';
+import { BarChart } from '@/components/charts/BarChart';
+import { useClassifier } from '@/hooks/useClassifier';
+import { cn } from '@/lib/utils';
+import { ClassifierModelType } from '@/types/classifier';
 
-// Mock data for demonstration
-const mockModelMetrics = {
-  accuracy: 0.947,
-  precision: 0.923,
-  recall: 0.891,
-  f1Score: 0.907,
-  auc: 0.962,
-  training: {
-    epochs: 25,
-    currentEpoch: 25,
-    loss: 0.023,
-    valLoss: 0.045,
-    isTraining: false,
-  }
+// ================================================================
+// Animation Variants
+// ================================================================
+
+const fadeInUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
 };
 
-const mockTrainingHistory = [
-  { epoch: 1, loss: 0.95, valLoss: 0.89, accuracy: 0.62, valAccuracy: 0.65 },
-  { epoch: 5, loss: 0.45, valLoss: 0.52, accuracy: 0.78, valAccuracy: 0.76 },
-  { epoch: 10, loss: 0.22, valLoss: 0.31, accuracy: 0.87, valAccuracy: 0.85 },
-  { epoch: 15, loss: 0.12, valLoss: 0.24, accuracy: 0.92, valAccuracy: 0.89 },
-  { epoch: 20, loss: 0.06, valLoss: 0.18, accuracy: 0.95, valAccuracy: 0.91 },
-  { epoch: 25, loss: 0.023, valLoss: 0.045, accuracy: 0.947, valAccuracy: 0.934 },
-];
-
-const mockConfusionMatrix = {
-  matrix: [
-    [450, 23],  // True Negative, False Positive
-    [18, 387],  // False Negative, True Positive
-  ],
-  labels: ['Legitimate', 'Misinformation']
+const scaleIn = {
+  initial: { opacity: 0, scale: 0.95 },
+  animate: { opacity: 1, scale: 1 },
+  exit: { opacity: 0, scale: 0.95 },
 };
 
-const mockClassificationResults = [
-  { id: 1, text: "Breaking: Scientists discover new planet...", prediction: "legitimate", confidence: 0.94, status: "completed" },
-  { id: 2, text: "Shocking: Miracle cure for all diseases found...", prediction: "misinformation", confidence: 0.89, status: "completed" },
-  { id: 3, text: "Local elections show increased voter turnout...", prediction: "legitimate", confidence: 0.92, status: "completed" },
-  { id: 4, text: "Government secretly controls weather patterns...", prediction: "misinformation", confidence: 0.97, status: "completed" },
-  { id: 5, text: "Economic indicators suggest market recovery...", prediction: "legitimate", confidence: 0.85, status: "processing" },
-];
+// ================================================================
+// Components
+// ================================================================
 
-const MetricCard: React.FC<{
-  title: string;
+// Animated Progress Bar Component
+interface AnimatedProgressProps {
   value: number;
-  format?: 'percentage' | 'decimal';
-  icon: React.ReactNode;
-  description: string;
-}> = ({ title, value, format = 'percentage', icon, description }) => (
-  <Card>
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      {icon}
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">
-        {format === 'percentage' ? `${(value * 100).toFixed(1)}%` : value.toFixed(3)}
-      </div>
-      <p className="text-xs text-slate-600 dark:text-slate-400">{description}</p>
-    </CardContent>
-  </Card>
-);
+  className?: string;
+}
 
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case 'completed':
-      return <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Completed</Badge>;
-    case 'processing':
-      return <Badge variant="default" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Processing</Badge>;
-    case 'failed':
-      return <Badge variant="destructive">Failed</Badge>;
-    default:
-      return <Badge variant="secondary">{status}</Badge>;
-  }
-};
+const AnimatedProgress: React.FC<AnimatedProgressProps> = ({ value, className }) => {
+  const [animatedValue, setAnimatedValue] = useState(0);
 
-const getPredictionBadge = (prediction: string, confidence: number) => {
-  const isHighConfidence = confidence > 0.9;
-
-  if (prediction === 'legitimate') {
-    return (
-      <Badge
-        variant="default"
-        className={`${isHighConfidence ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'}`}
-      >
-        ✓ Legitimate
-      </Badge>
-    );
-  } else {
-    return (
-      <Badge
-        variant="default"
-        className={`${isHighConfidence ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300'}`}
-      >
-        ⚠ Misinformation
-      </Badge>
-    );
-  }
-};
-
-export default function ClassifierPage() {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [isTraining, setIsTraining] = useState(false);
-  const [isClassifying, setIsClassifying] = useState(false);
-
-  const handleStartTraining = () => {
-    setIsTraining(true);
-    // Simulate training process
-    setTimeout(() => setIsTraining(false), 5000);
-  };
-
-  const handleClassifyData = () => {
-    setIsClassifying(true);
-    // Simulate classification process
-    setTimeout(() => setIsClassifying(false), 3000);
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnimatedValue(value);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [value]);
 
   return (
-    <div className="space-y-8">
+    <div className="relative">
+      <Progress
+        value={animatedValue}
+        className={cn("h-3", className)}
+        style={{
+          transition: 'all 1s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      />
+    </div>
+  );
+};
+
+// Model Selection Info
+const MODEL_INFO: Record<ClassifierModelType, { label: string; description: string }> = {
+  ensemble: {
+    label: 'Ensemble (Recommended)',
+    description: 'Combines multiple models for highest accuracy (88.4%)',
+  },
+  bert: {
+    label: 'BERT-Based',
+    description: 'Deep learning transformer model with strong contextual understanding',
+  },
+  lstm: {
+    label: 'LSTM Neural Network',
+    description: 'Recurrent neural network for sequential text analysis',
+  },
+  logistic_regression: {
+    label: 'Logistic Regression',
+    description: 'Fast traditional ML model for quick classifications',
+  },
+  naive_bayes: {
+    label: 'Naive Bayes',
+    description: 'Probabilistic classifier with good baseline performance',
+  },
+  svm: {
+    label: 'Support Vector Machine',
+    description: 'Robust traditional model with good generalization',
+  },
+  random_forest: {
+    label: 'Random Forest',
+    description: 'Ensemble of decision trees for reliable predictions',
+  },
+};
+
+// ================================================================
+// Main Classifier Page Component
+// ================================================================
+
+export default function ClassifierPage() {
+  const [inputText, setInputText] = useState('');
+  const [selectedModel, setSelectedModel] = useState<ClassifierModelType>('ensemble');
+  const [showResults, setShowResults] = useState(false);
+
+  const {
+    classificationResult,
+    isLoading,
+    error,
+    classifyText,
+  } = useClassifier();
+
+  // Handle text classification
+  const handleAnalyze = async () => {
+    if (!inputText.trim()) {
+      return;
+    }
+
+    setShowResults(false);
+    await classifyText(inputText, {
+      model_type: selectedModel,
+      explain: true,
+      confidence_threshold: 0.5,
+    });
+    setShowResults(true);
+  };
+
+  // Reset when user starts typing after getting results
+  useEffect(() => {
+    if (showResults && inputText !== classificationResult?.text) {
+      setShowResults(false);
+    }
+  }, [inputText, showResults, classificationResult?.text]);
+
+  // Get verdict styling
+  const getVerdictStyle = (prediction?: 'fake' | 'real') => {
+    if (prediction === 'real') {
+      return {
+        textColor: 'text-green-700 dark:text-green-400',
+        bgColor: 'bg-green-50 dark:bg-green-900/20',
+        borderColor: 'border-green-200 dark:border-green-800',
+        icon: <CheckCircle2 className="h-8 w-8 text-green-600" />,
+        label: 'Likely Real News',
+      };
+    }
+    return {
+      textColor: 'text-red-700 dark:text-red-400',
+      bgColor: 'bg-red-50 dark:bg-red-900/20',
+      borderColor: 'border-red-200 dark:border-red-800',
+      icon: <XCircle className="h-8 w-8 text-red-600" />,
+      label: 'Likely Fake News',
+    };
+  };
+
+  const verdictStyle = getVerdictStyle(classificationResult?.prediction);
+
+  // Prepare probability data for bar chart
+  const probabilityData = classificationResult
+    ? [
+        {
+          label: 'Real News',
+          probability: (classificationResult.probabilities.real * 100).toFixed(1),
+        },
+        {
+          label: 'Fake News',
+          probability: (classificationResult.probabilities.fake * 100).toFixed(1),
+        },
+      ]
+    : [];
+
+  const probabilitySeries = [
+    {
+      dataKey: 'probability',
+      name: 'Probability (%)',
+      color: '#3b82f6',
+    },
+  ];
+
+  return (
+    <div className="space-y-8 max-w-6xl mx-auto">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Fake News Classifier</h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-2">
-          Train, evaluate, and deploy machine learning models for misinformation detection.
-        </p>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="training">Training</TabsTrigger>
-          <TabsTrigger value="evaluation">Evaluation</TabsTrigger>
-          <TabsTrigger value="classification">Classification</TabsTrigger>
-          <TabsTrigger value="data">Data Management</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          {/* Model Performance Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            <MetricCard
-              title="Accuracy"
-              value={mockModelMetrics.accuracy}
-              icon={<Gauge className="h-4 w-4 text-slate-600 dark:text-slate-400" />}
-              description="Overall model accuracy"
-            />
-            <MetricCard
-              title="Precision"
-              value={mockModelMetrics.precision}
-              icon={<CheckCircle className="h-4 w-4 text-slate-600 dark:text-slate-400" />}
-              description="True positive rate"
-            />
-            <MetricCard
-              title="Recall"
-              value={mockModelMetrics.recall}
-              icon={<BarChart3 className="h-4 w-4 text-slate-600 dark:text-slate-400" />}
-              description="Sensitivity measure"
-            />
-            <MetricCard
-              title="F1-Score"
-              value={mockModelMetrics.f1Score}
-              icon={<Brain className="h-4 w-4 text-slate-600 dark:text-slate-400" />}
-              description="Harmonic mean of precision/recall"
-            />
-            <MetricCard
-              title="AUC-ROC"
-              value={mockModelMetrics.auc}
-              icon={<BarChart3 className="h-4 w-4 text-slate-600 dark:text-slate-400" />}
-              description="Area under ROC curve"
-            />
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="flex items-center gap-3 mb-3">
+          <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+            <Sparkles className="h-6 w-6 text-blue-600" />
           </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+            Real-Time News Classifier
+          </h1>
+        </div>
+        <p className="text-gray-600 dark:text-gray-400 text-lg">
+          Analyze news articles, posts, or other text to detect potential misinformation
+        </p>
+      </motion.div>
 
-          {/* Training Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Brain className="w-5 h-5" />
-                Current Model Status
-              </CardTitle>
-              <CardDescription>
-                Latest training session and model deployment status
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
+      {/* Main Classifier Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+      >
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-2xl">
+              <FileText className="h-6 w-6 text-blue-600" />
+              Text Classification
+            </CardTitle>
+            <CardDescription>
+              Enter text below and select a model to analyze its authenticity
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Input Section */}
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                  Text to Analyze
+                </label>
+                <Textarea
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder="Paste the news article or text you want to analyze...
+
+Example: Breaking news: Scientists have made a groundbreaking discovery that could change everything we know about..."
+                  className="min-h-[200px] text-base resize-y"
+                  disabled={isLoading}
+                />
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-xs text-gray-500">
+                    {inputText.length} characters
+                  </span>
+                  {inputText.length > 0 && (
+                    <span className="text-xs text-gray-500">
+                      ~{Math.ceil(inputText.split(/\s+/).length)} words
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <p className="font-medium">BERT-Large Fine-tuned v2.1</p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Last trained: 2 hours ago • Deployed: Active
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                    Classification Model
+                  </label>
+                  <Select
+                    value={selectedModel}
+                    onValueChange={(value) => setSelectedModel(value as ClassifierModelType)}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(MODEL_INFO).map(([key, info]) => (
+                        <SelectItem key={key} value={key}>
+                          {info.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {MODEL_INFO[selectedModel].description}
                   </p>
                 </div>
-                <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                  Production Ready
-                </Badge>
-              </div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Training Progress</span>
-                  <span>{mockModelMetrics.training.currentEpoch}/{mockModelMetrics.training.epochs} epochs</span>
+                <div className="flex items-end">
+                  <Button
+                    onClick={handleAnalyze}
+                    disabled={isLoading || !inputText.trim()}
+                    size="lg"
+                    className="w-full h-12 text-base font-semibold"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Brain className="mr-2 h-5 w-5" />
+                        Analyze Text
+                      </>
+                    )}
+                  </Button>
                 </div>
-                <Progress value={(mockModelMetrics.training.currentEpoch / mockModelMetrics.training.epochs) * 100} />
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-slate-600 dark:text-slate-400">Training Loss:</span>
-                  <span className="ml-2 font-mono">{mockModelMetrics.training.loss}</span>
-                </div>
-                <div>
-                  <span className="text-slate-600 dark:text-slate-400">Validation Loss:</span>
-                  <span className="ml-2 font-mono">{mockModelMetrics.training.valLoss}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Error Display */}
+            <AnimatePresence>
+              {error && (
+                <motion.div {...fadeInUp} transition={{ duration: 0.3 }}>
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Classification Error</AlertTitle>
+                    <AlertDescription>
+                      {error || 'An error occurred while analyzing the text. Please try again.'}
+                    </AlertDescription>
+                  </Alert>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Train New Model</CardTitle>
-                <CardDescription>Start training with your datasets</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  onClick={handleStartTraining}
-                  disabled={isTraining}
-                  className="w-full"
+            {/* Results Display */}
+            <AnimatePresence mode="wait">
+              {showResults && classificationResult && !error && (
+                <motion.div
+                  key="results"
+                  {...scaleIn}
+                  transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
                 >
-                  <Brain className="w-4 h-4 mr-2" />
-                  {isTraining ? 'Training...' : 'Start Training'}
-                </Button>
-              </CardContent>
-            </Card>
+                  <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
+                    <Tabs defaultValue="prediction" className="w-full">
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="prediction" className="flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4" />
+                          Prediction
+                        </TabsTrigger>
+                        <TabsTrigger value="probabilities" className="flex items-center gap-2">
+                          <BarChart2 className="h-4 w-4" />
+                          Probabilities
+                        </TabsTrigger>
+                        <TabsTrigger value="explanation" className="flex items-center gap-2">
+                          <Info className="h-4 w-4" />
+                          Explanation
+                        </TabsTrigger>
+                      </TabsList>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Classify Content</CardTitle>
-                <CardDescription>Analyze text for misinformation</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  onClick={handleClassifyData}
-                  disabled={isClassifying}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  {isClassifying ? 'Processing...' : 'Classify Data'}
-                </Button>
-              </CardContent>
-            </Card>
+                      {/* Prediction Tab */}
+                      <TabsContent value="prediction" className="space-y-6 mt-6">
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.4, delay: 0.1 }}
+                          className={cn(
+                            "p-8 rounded-xl border-2 text-center",
+                            verdictStyle.bgColor,
+                            verdictStyle.borderColor
+                          )}
+                        >
+                          <div className="flex flex-col items-center gap-4">
+                            {verdictStyle.icon}
+                            <div>
+                              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                Classification Result
+                              </p>
+                              <h3 className={cn("text-3xl font-bold", verdictStyle.textColor)}>
+                                {verdictStyle.label}
+                              </h3>
+                            </div>
+                          </div>
+                        </motion.div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Model Settings</CardTitle>
-                <CardDescription>Configure model parameters</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Configure Model
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+                        <div className="space-y-4">
+                          <div>
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Confidence Score
+                              </span>
+                              <Badge variant="outline" className="text-base font-semibold">
+                                {(classificationResult.confidence * 100).toFixed(1)}%
+                              </Badge>
+                            </div>
+                            <AnimatedProgress
+                              value={classificationResult.confidence * 100}
+                              className={cn(
+                                "h-4",
+                                classificationResult.prediction === 'real'
+                                  ? '[&>div]:bg-green-600'
+                                  : '[&>div]:bg-red-600'
+                              )}
+                            />
+                            <p className="text-xs text-gray-500 mt-2">
+                              {classificationResult.confidence >= 0.9
+                                ? 'Very high confidence in this prediction'
+                                : classificationResult.confidence >= 0.7
+                                ? 'High confidence in this prediction'
+                                : classificationResult.confidence >= 0.5
+                                ? 'Moderate confidence in this prediction'
+                                : 'Low confidence - results should be interpreted carefully'}
+                            </p>
+                          </div>
 
-        <TabsContent value="training" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Training Configuration */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Training Configuration</CardTitle>
-                <CardDescription>Configure model architecture and training parameters</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ClassifierConfigForm
-                  onSubmit={(config) => {
-                    console.log('Training with config:', config);
-                    handleStartTraining();
-                  }}
-                  isLoading={isTraining}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Training Progress */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Training Progress</CardTitle>
-                <CardDescription>Real-time training metrics and progress</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ModelPerformance data={mockTrainingHistory} />
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="evaluation" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Confusion Matrix */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Confusion Matrix</CardTitle>
-                <CardDescription>Detailed classification performance breakdown</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ConfusionMatrix data={mockConfusionMatrix} />
-              </CardContent>
-            </Card>
-
-            {/* Performance Metrics */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Detailed Metrics</CardTitle>
-                <CardDescription>Comprehensive model evaluation results</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm font-medium">Accuracy</span>
-                      <span className="text-sm font-mono">{(mockModelMetrics.accuracy * 100).toFixed(1)}%</span>
-                    </div>
-                    <Progress value={mockModelMetrics.accuracy * 100} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm font-medium">Precision</span>
-                      <span className="text-sm font-mono">{(mockModelMetrics.precision * 100).toFixed(1)}%</span>
-                    </div>
-                    <Progress value={mockModelMetrics.precision * 100} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm font-medium">Recall</span>
-                      <span className="text-sm font-mono">{(mockModelMetrics.recall * 100).toFixed(1)}%</span>
-                    </div>
-                    <Progress value={mockModelMetrics.recall * 100} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm font-medium">F1-Score</span>
-                      <span className="text-sm font-mono">{(mockModelMetrics.f1Score * 100).toFixed(1)}%</span>
-                    </div>
-                    <Progress value={mockModelMetrics.f1Score * 100} />
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t">
-                  <h4 className="font-medium mb-2">Classification Report</h4>
-                  <div className="text-sm space-y-1 font-mono">
-                    <div className="grid grid-cols-4 gap-4 font-semibold border-b pb-1">
-                      <span>Class</span>
-                      <span>Precision</span>
-                      <span>Recall</span>
-                      <span>F1-Score</span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-4">
-                      <span>Legitimate</span>
-                      <span>0.951</span>
-                      <span>0.923</span>
-                      <span>0.937</span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-4">
-                      <span>Misinformation</span>
-                      <span>0.894</span>
-                      <span>0.915</span>
-                      <span>0.904</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="classification" className="space-y-6">
-          {/* Classification Results */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Classifications</CardTitle>
-              <CardDescription>Latest content analysis results</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Content Preview</TableHead>
-                    <TableHead>Prediction</TableHead>
-                    <TableHead>Confidence</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockClassificationResults.map((result) => (
-                    <TableRow key={result.id}>
-                      <TableCell className="max-w-md">
-                        <div className="truncate text-sm">
-                          {result.text}
+                          <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">Model Used:</span>
+                              <span className="font-medium text-gray-900 dark:text-gray-100">
+                                {classificationResult.model_used}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">Processing Time:</span>
+                              <span className="font-medium text-gray-900 dark:text-gray-100">
+                                {classificationResult.processing_time}ms
+                              </span>
+                            </div>
+                            {classificationResult.metadata && (
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-600 dark:text-gray-400">Text Length:</span>
+                                <span className="font-medium text-gray-900 dark:text-gray-100">
+                                  {classificationResult.metadata.text_length} characters
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        {getPredictionBadge(result.prediction, result.confidence)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-mono">
-                            {(result.confidence * 100).toFixed(1)}%
-                          </span>
-                          <Progress value={result.confidence * 100} className="w-16" />
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(result.status)}
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm">
-                          View Details
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                      </TabsContent>
 
-          {/* Batch Classification */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Batch Classification</CardTitle>
-              <CardDescription>Upload and classify multiple documents at once</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <DataUploadForm
-                    onUpload={(files) => {
-                      console.log('Uploaded files for classification:', files);
-                      handleClassifyData();
-                    }}
-                    acceptedTypes={['.txt', '.csv', '.json']}
-                    maxFileSize={10 * 1024 * 1024} // 10MB
-                    title="Upload Content for Classification"
-                    description="Supported formats: TXT, CSV, JSON"
-                  />
-                </div>
+                      {/* Probabilities Tab */}
+                      <TabsContent value="probabilities" className="space-y-6 mt-6">
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.4, delay: 0.1 }}
+                        >
+                          <div className="mb-6">
+                            <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                              Raw Classification Probabilities
+                            </h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Detailed probability distribution across classification labels
+                            </p>
+                          </div>
 
-                <div className="space-y-4">
-                  <h4 className="font-medium">Classification Options</h4>
-                  <div className="space-y-3">
-                    <Button className="w-full" disabled={isClassifying}>
-                      <Play className="w-4 h-4 mr-2" />
-                      {isClassifying ? 'Classifying...' : 'Start Batch Classification'}
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      <Download className="w-4 h-4 mr-2" />
-                      Download Results
-                    </Button>
+                          <BarChart
+                            data={probabilityData}
+                            series={probabilitySeries}
+                            xAxisKey="label"
+                          />
+
+                          <div className="grid grid-cols-2 gap-4 mt-6">
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ duration: 0.3, delay: 0.2 }}
+                              className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800"
+                            >
+                              <div className="flex items-center gap-2 mb-2">
+                                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                <span className="font-medium text-gray-900 dark:text-gray-100">
+                                  Real News
+                                </span>
+                              </div>
+                              <div className="text-3xl font-bold text-green-700 dark:text-green-400">
+                                {(classificationResult.probabilities.real * 100).toFixed(1)}%
+                              </div>
+                            </motion.div>
+
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ duration: 0.3, delay: 0.3 }}
+                              className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800"
+                            >
+                              <div className="flex items-center gap-2 mb-2">
+                                <XCircle className="h-5 w-5 text-red-600" />
+                                <span className="font-medium text-gray-900 dark:text-gray-100">
+                                  Fake News
+                                </span>
+                              </div>
+                              <div className="text-3xl font-bold text-red-700 dark:text-red-400">
+                                {(classificationResult.probabilities.fake * 100).toFixed(1)}%
+                              </div>
+                            </motion.div>
+                          </div>
+                        </motion.div>
+                      </TabsContent>
+
+                      {/* Explanation Tab */}
+                      <TabsContent value="explanation" className="space-y-6 mt-6">
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.4, delay: 0.1 }}
+                        >
+                          <div className="mb-6">
+                            <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                              Model Explanation
+                            </h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Understanding which features influenced this prediction
+                            </p>
+                          </div>
+
+                          {classificationResult.explanation ? (
+                            <div className="space-y-6">
+                              {/* Top Contributing Phrases */}
+                              {classificationResult.explanation.top_phrases &&
+                                classificationResult.explanation.top_phrases.length > 0 && (
+                                  <div>
+                                    <h5 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                                      Key Influential Phrases
+                                    </h5>
+                                    <div className="space-y-2">
+                                      {classificationResult.explanation.top_phrases.slice(0, 5).map((phrase, idx) => (
+                                        <motion.div
+                                          key={idx}
+                                          initial={{ opacity: 0, x: -20 }}
+                                          animate={{ opacity: 1, x: 0 }}
+                                          transition={{ duration: 0.3, delay: 0.2 + idx * 0.05 }}
+                                          className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
+                                        >
+                                          <Badge
+                                            variant="outline"
+                                            className={cn(
+                                              "shrink-0",
+                                              phrase.type === 'positive'
+                                                ? 'border-green-500 text-green-700 dark:text-green-400'
+                                                : 'border-red-500 text-red-700 dark:text-red-400'
+                                            )}
+                                          >
+                                            {phrase.type === 'positive' ? 'Supports Real' : 'Indicates Fake'}
+                                          </Badge>
+                                          <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">
+                                            "{phrase.phrase}"
+                                          </span>
+                                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                            {(phrase.contribution * 100).toFixed(1)}%
+                                          </span>
+                                        </motion.div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                              {/* Feature Importance */}
+                              {classificationResult.explanation.feature_importance &&
+                                classificationResult.explanation.feature_importance.length > 0 && (
+                                  <div>
+                                    <h5 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                                      Feature Importance
+                                    </h5>
+                                    <div className="space-y-2">
+                                      {classificationResult.explanation.feature_importance.slice(0, 5).map((feature, idx) => (
+                                        <motion.div
+                                          key={idx}
+                                          initial={{ opacity: 0, x: -20 }}
+                                          animate={{ opacity: 1, x: 0 }}
+                                          transition={{ duration: 0.3, delay: 0.3 + idx * 0.05 }}
+                                          className="space-y-1"
+                                        >
+                                          <div className="flex items-center justify-between text-sm">
+                                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                                              {feature.feature}
+                                            </span>
+                                            <span className="text-gray-900 dark:text-gray-100 font-semibold">
+                                              {(feature.importance * 100).toFixed(1)}%
+                                            </span>
+                                          </div>
+                                          <Progress
+                                            value={feature.importance * 100}
+                                            className={cn(
+                                              "h-2",
+                                              feature.type === 'positive'
+                                                ? '[&>div]:bg-green-600'
+                                                : '[&>div]:bg-red-600'
+                                            )}
+                                          />
+                                        </motion.div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                              {/* Information Box */}
+                              <Alert>
+                                <Info className="h-4 w-4" />
+                                <AlertTitle>Model Transparency</AlertTitle>
+                                <AlertDescription>
+                                  This explanation shows which parts of the text most strongly influenced
+                                  the model's decision. Features marked as "Supports Real" push the
+                                  prediction toward real news, while "Indicates Fake" features push toward
+                                  fake news classification.
+                                </AlertDescription>
+                              </Alert>
+                            </div>
+                          ) : (
+                            <Alert>
+                              <Info className="h-4 w-4" />
+                              <AlertTitle>Explanation Unavailable</AlertTitle>
+                              <AlertDescription>
+                                Model explanations are not available for this classification result.
+                                This may occur with certain model types or if explanation generation was disabled.
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </motion.div>
+                      </TabsContent>
+                    </Tabs>
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </CardContent>
+        </Card>
+      </motion.div>
 
-        <TabsContent value="data" className="space-y-6">
-          {/* Data Upload */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Training Data Management</CardTitle>
-              <CardDescription>Upload and manage datasets for model training</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DataUploadForm
-                onUpload={(files) => {
-                  console.log('Uploaded training data:', files);
-                }}
-                acceptedTypes={['.csv', '.json', '.parquet']}
-                maxFileSize={100 * 1024 * 1024} // 100MB
-                title="Upload Training Dataset"
-                description="Supported formats: CSV, JSON, Parquet (max 100MB)"
-              />
-            </CardContent>
-          </Card>
+      {/* Information Cards */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              How It Works
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-gray-600 dark:text-gray-400">
+            Our models analyze linguistic patterns, source credibility indicators, and content
+            structure to identify potential misinformation with high accuracy.
+          </CardContent>
+        </Card>
 
-          {/* Dataset Statistics */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Dataset Statistics</CardTitle>
-              <CardDescription>Overview of available training data</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center p-4 border rounded-lg">
-                  <Database className="w-8 h-8 mx-auto mb-2 text-slate-600 dark:text-slate-400" />
-                  <div className="text-2xl font-bold">24,847</div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">Total Samples</div>
-                </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-blue-600" />
+              Model Performance
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-gray-600 dark:text-gray-400">
+            The Ensemble model achieves 88.4% accuracy by combining BERT, LSTM, and traditional
+            ML approaches for robust predictions.
+          </CardContent>
+        </Card>
 
-                <div className="text-center p-4 border rounded-lg">
-                  <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-600" />
-                  <div className="text-2xl font-bold">12,423</div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">Legitimate News</div>
-                </div>
-
-                <div className="text-center p-4 border rounded-lg">
-                  <XCircle className="w-8 h-8 mx-auto mb-2 text-red-600" />
-                  <div className="text-2xl font-bold">12,424</div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">Misinformation</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-yellow-600" />
+              Important Note
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-gray-600 dark:text-gray-400">
+            While highly accurate, no automated system is perfect. Always verify critical
+            information through multiple trusted sources.
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }

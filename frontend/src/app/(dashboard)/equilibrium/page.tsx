@@ -2,570 +2,722 @@
 
 "use client";
 
-import React, { useState } from 'react';
-import { Calculator, TrendingUp, Users, Target, Zap, Settings, Download, Play, BarChart3 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Calculator,
+  Target,
+  CheckCircle2,
+  Info,
+  Sparkles,
+  BarChart3,
+} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { GameParametersForm } from '@/components/forms/GameParametersForm';
 import { PayoffMatrix } from '@/components/game-theory/PayoffMatrix';
-import { EquilibriumAnalysis } from '@/components/game-theory/EquilibriumAnalysis';
-import { StrategyEvolution } from '@/components/game-theory/StrategyEvolution';
-import { LineChart } from '@/components/charts/LineChart';
-import { BarChart } from '@/components/charts/BarChart';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { PayoffMatrixData } from '@/types/gameTheory';
 
-// Mock game theory data
-const mockPayoffMatrices = {
-  spreaderVsModerator: {
-    title: "Spreader vs Moderator",
-    players: ["Spreader", "Moderator"] as [string, string],
-    strategies: {
-      "Spreader": ["Aggressive", "Conservative"],
-      "Moderator": ["Strict", "Lenient"]
+// ================================================================
+// Scenario Configurations
+// ================================================================
+
+interface GameScenario {
+  id: string;
+  name: string;
+  description: string;
+  parameters: GameParameters;
+}
+
+interface GameParameters {
+  detectionPenalty: number;
+  verificationCost: number;
+  engagementRevenue: number;
+  networkDensity: number;
+  learningRate: number;
+}
+
+const SCENARIOS: GameScenario[] = [
+  {
+    id: 'baseline',
+    name: 'Baseline Scenario',
+    description: 'Standard parameters representing typical social media dynamics',
+    parameters: {
+      detectionPenalty: 50,
+      verificationCost: 30,
+      engagementRevenue: 60,
+      networkDensity: 50,
+      learningRate: 40,
     },
-    payoffs: [
-      [{ "Spreader": 2.5, "Moderator": -1.8 }, { "Spreader": -0.5, "Moderator": 1.2 }],
-      [{ "Spreader": 1.0, "Moderator": -0.8 }, { "Spreader": 0.8, "Moderator": 0.5 }]
-    ],
-    equilibrium: {
-      strategies: [0, 1] as [number, number],
-      payoffs: { "Spreader": 1.2, "Moderator": -0.8 },
-      type: "pure" as const,
-      stability: 0.85,
-      classification: "strict" as const
-    }
   },
-  spreaderVsUser: {
-    title: "Spreader vs User",
-    players: ["Spreader", "User"] as [string, string],
-    strategies: {
-      "Spreader": ["High Sophistication", "Low Sophistication"],
-      "User": ["Critical Thinking", "Passive Consumption"]
+  {
+    id: 'high_detection',
+    name: 'High Detection Scenario',
+    description: 'Strong content moderation with high penalties for fake news',
+    parameters: {
+      detectionPenalty: 90,
+      verificationCost: 30,
+      engagementRevenue: 50,
+      networkDensity: 50,
+      learningRate: 60,
     },
-    payoffs: [
-      [{ "Spreader": 3.2, "User": -2.1 }, { "Spreader": 1.8, "User": -0.9 }],
-      [{ "Spreader": 2.1, "User": -1.2 }, { "Spreader": 0.9, "User": -0.3 }]
-    ],
-    equilibrium: {
-      strategies: [1, 0] as [number, number],
-      payoffs: { "Spreader": 2.1, "User": -1.2 },
-      type: "pure" as const,
-      stability: 0.78,
-      classification: "strict" as const
-    }
   },
-  moderatorVsUser: {
-    title: "Moderator vs User",
-    players: ["Moderator", "User"] as [string, string],
+  {
+    id: 'low_moderation',
+    name: 'Low Moderation Scenario',
+    description: 'Minimal platform intervention with weak detection',
+    parameters: {
+      detectionPenalty: 20,
+      verificationCost: 40,
+      engagementRevenue: 80,
+      networkDensity: 60,
+      learningRate: 30,
+    },
+  },
+  {
+    id: 'high_engagement',
+    name: 'High Engagement Scenario',
+    description: 'Platforms prioritize engagement over content quality',
+    parameters: {
+      detectionPenalty: 30,
+      verificationCost: 50,
+      engagementRevenue: 95,
+      networkDensity: 70,
+      learningRate: 35,
+    },
+  },
+];
+
+// Player interaction options
+const PLAYER_INTERACTIONS = [
+  { value: 'spreader_moderator', label: 'Spreader vs. Moderator', players: ['Spreader', 'Moderator'] },
+  { value: 'spreader_platform', label: 'Spreader vs. Platform', players: ['Spreader', 'Platform'] },
+  { value: 'platform_factchecker', label: 'Platform vs. Fact-Checker', players: ['Platform', 'Fact-Checker'] },
+  { value: 'moderator_user', label: 'Moderator vs. User', players: ['Moderator', 'User'] },
+];
+
+// ================================================================
+// Helper Functions
+// ================================================================
+
+function generatePayoffMatrix(
+  playerInteraction: string,
+  parameters: GameParameters
+): PayoffMatrixData {
+  const { detectionPenalty, verificationCost, engagementRevenue } = parameters;
+
+  // Scale parameters to payoff values
+  const detectScale = detectionPenalty / 50;
+  const costScale = verificationCost / 50;
+  const revenueScale = engagementRevenue / 50;
+
+  if (playerInteraction === 'spreader_moderator') {
+    return {
+      players: ['Spreader', 'Moderator'] as [string, string],
+      strategies: {
+        Spreader: ['Aggressive', 'Conservative'],
+        Moderator: ['Strict', 'Lenient'],
+      },
+      payoffs: [
+        [
+          { Spreader: 2.5 * revenueScale - 1.0 * detectScale, Moderator: -1.8 * costScale },
+          { Spreader: 1.5 * revenueScale, Moderator: 1.2 - 0.5 * costScale },
+        ],
+        [
+          { Spreader: 1.0 * revenueScale - 0.3 * detectScale, Moderator: -0.8 * costScale },
+          { Spreader: 0.8 * revenueScale, Moderator: 0.5 },
+        ],
+      ],
+      equilibrium: {
+        strategies: [1, 1] as [number, number],
+        payoffs: {
+          Spreader: 0.8 * revenueScale,
+          Moderator: 0.5,
+        },
+        type: 'pure',
+        stability: 0.85,
+        classification: 'strict',
+      },
+    };
+  }
+
+  if (playerInteraction === 'spreader_platform') {
+    return {
+      players: ['Spreader', 'Platform'] as [string, string],
+      strategies: {
+        Spreader: ['Post Fake', 'Post Mixed'],
+        Platform: ['Strict Policy', 'Lenient Policy'],
+      },
+      payoffs: [
+        [
+          { Spreader: 1.2 * revenueScale - 2.0 * detectScale, Platform: 0.5 * revenueScale - 1.5 },
+          { Spreader: 2.8 * revenueScale - 0.5 * detectScale, Platform: 1.8 * revenueScale },
+        ],
+        [
+          { Spreader: 0.9 * revenueScale - 0.8 * detectScale, Platform: 1.2 * revenueScale - 0.8 },
+          { Spreader: 1.5 * revenueScale, Platform: 1.6 * revenueScale - 0.3 },
+        ],
+      ],
+      equilibrium: {
+        strategies: [1, 0] as [number, number],
+        payoffs: {
+          Spreader: 0.9 * revenueScale - 0.8 * detectScale,
+          Platform: 1.2 * revenueScale - 0.8,
+        },
+        type: 'pure',
+        stability: 0.78,
+        classification: 'weak',
+      },
+    };
+  }
+
+  if (playerInteraction === 'platform_factchecker') {
+    return {
+      players: ['Platform', 'Fact-Checker'] as [string, string],
+      strategies: {
+        Platform: ['Active Monitoring', 'Passive Monitoring'],
+        'Fact-Checker': ['Comprehensive', 'Selective'],
+      },
+      payoffs: [
+        [
+          { Platform: 1.8 - 1.2 * costScale, 'Fact-Checker': 2.5 - 1.5 * costScale },
+          { Platform: 1.2 - 0.8 * costScale, 'Fact-Checker': 1.8 - 0.8 * costScale },
+        ],
+        [
+          { Platform: 1.5 - 0.5 * costScale, 'Fact-Checker': 2.0 - 1.0 * costScale },
+          { Platform: 0.9, 'Fact-Checker': 1.2 - 0.4 * costScale },
+        ],
+      ],
+      equilibrium: {
+        strategies: [0, 1] as [number, number],
+        payoffs: {
+          Platform: 1.2 - 0.8 * costScale,
+          'Fact-Checker': 1.8 - 0.8 * costScale,
+        },
+        type: 'pure',
+        stability: 0.88,
+        classification: 'strict',
+      },
+    };
+  }
+
+  // Default: moderator_user
+  return {
+    players: ['Moderator', 'User'] as [string, string],
     strategies: {
-      "Moderator": ["Proactive", "Reactive"],
-      "User": ["Report", "Ignore"]
+      Moderator: ['Proactive', 'Reactive'],
+      User: ['Report Content', 'Ignore'],
     },
     payoffs: [
-      [{ "Moderator": 1.5, "User": 1.2 }, { "Moderator": 0.8, "User": -0.5 }],
-      [{ "Moderator": 0.9, "User": 0.8 }, { "Moderator": 0.3, "User": 0.1 }]
+      [
+        { Moderator: 1.5, User: 1.2 },
+        { Moderator: 0.8 - 0.3 * costScale, User: -0.5 },
+      ],
+      [
+        { Moderator: 0.9, User: 0.8 },
+        { Moderator: 0.3, User: 0.1 },
+      ],
     ],
     equilibrium: {
       strategies: [0, 0] as [number, number],
-      payoffs: { "Moderator": 1.5, "User": 1.2 },
-      type: "pure" as const,
+      payoffs: { Moderator: 1.5, User: 1.2 },
+      type: 'pure',
       stability: 0.92,
-      classification: "strict" as const
-    }
-  }
-};
+      classification: 'strict',
+    },
+  };
+}
 
-const mockEquilibriumHistory = [
-  { round: 1, nashEquilibria: 2, paretoOptimal: 1, socialWelfare: 0.45 },
-  { round: 5, nashEquilibria: 3, paretoOptimal: 2, socialWelfare: 0.52 },
-  { round: 10, nashEquilibria: 2, paretoOptimal: 1, socialWelfare: 0.48 },
-  { round: 15, nashEquilibria: 4, paretoOptimal: 2, socialWelfare: 0.61 },
-  { round: 20, nashEquilibria: 3, paretoOptimal: 2, socialWelfare: 0.58 },
-  { round: 25, nashEquilibria: 2, paretoOptimal: 1, socialWelfare: 0.55 },
-];
+// Animated counter hook
+function useCountUp(end: number, duration: number = 1000) {
+  const [count, setCount] = useState(0);
 
-const mockStrategyDistribution = [
-  { strategy: "Aggressive Spreading", spreaders: 35, moderators: 0, users: 0 },
-  { strategy: "Conservative Spreading", spreaders: 65, moderators: 0, users: 0 },
-  { strategy: "Strict Moderation", moderators: 40, spreaders: 0, users: 0 },
-  { strategy: "Lenient Moderation", moderators: 60, spreaders: 0, users: 0 },
-  { strategy: "Critical Thinking", users: 30, spreaders: 0, moderators: 0 },
-  { strategy: "Passive Consumption", users: 70, spreaders: 0, moderators: 0 },
-];
+  useEffect(() => {
+    let startTime: number | null = null;
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime;
+      const progress = Math.min((currentTime - startTime) / duration, 1);
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      setCount(end * easeOutQuart);
 
-const mockGameResults = [
-  {
-    id: 1,
-    scenario: "High Network Density",
-    nashCount: 3,
-    dominantStrategy: "Conservative-Lenient",
-    socialWelfare: 0.67,
-    convergenceRounds: 12,
-    status: "converged"
-  },
-  {
-    id: 2,
-    scenario: "Mixed Population",
-    nashCount: 2,
-    dominantStrategy: "Aggressive-Strict",
-    socialWelfare: 0.43,
-    convergenceRounds: 18,
-    status: "converged"
-  },
-  {
-    id: 3,
-    scenario: "Learning Disabled",
-    nashCount: 1,
-    dominantStrategy: "Conservative-Strict",
-    socialWelfare: 0.39,
-    convergenceRounds: 25,
-    status: "converged"
-  },
-  {
-    id: 4,
-    scenario: "High Noise Level",
-    nashCount: 4,
-    dominantStrategy: "Mixed Strategies",
-    socialWelfare: 0.52,
-    convergenceRounds: 30,
-    status: "oscillating"
-  },
-];
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setCount(end);
+      }
+    };
+    requestAnimationFrame(animate);
+  }, [end, duration]);
 
-const MetricCard: React.FC<{
-  title: string;
-  value: string | number;
-  unit?: string;
-  icon: React.ReactNode;
-  description: string;
-  trend?: number;
-}> = ({ title, value, unit, icon, description, trend }) => (
-  <Card>
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      {icon}
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">
-        {typeof value === 'number' ? value.toFixed(2) : value}
-        {unit && <span className="text-sm font-normal text-slate-600 dark:text-slate-400 ml-1">{unit}</span>}
-      </div>
-      <p className="text-xs text-slate-600 dark:text-slate-400">{description}</p>
-      {trend !== undefined && (
-        <div className="flex items-center mt-2">
-          <TrendingUp className={`w-3 h-3 mr-1 ${trend > 0 ? 'text-green-600' : 'text-red-600'}`} />
-          <span className={`text-xs ${trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {Math.abs(trend)}% from last game
-          </span>
-        </div>
-      )}
-    </CardContent>
-  </Card>
-);
+  return count;
+}
 
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case 'converged':
-      return <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Converged</Badge>;
-    case 'oscillating':
-      return <Badge variant="default" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Oscillating</Badge>;
-    case 'divergent':
-      return <Badge variant="destructive">Divergent</Badge>;
-    default:
-      return <Badge variant="secondary">{status}</Badge>;
-  }
-};
+// ================================================================
+// Main Component
+// ================================================================
 
 export default function EquilibriumPage() {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [selectedMatrix, setSelectedMatrix] = useState('spreaderVsModerator');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  // State
+  const [selectedScenario, setSelectedScenario] = useState<string>('baseline');
+  const [selectedInteraction, setSelectedInteraction] = useState<string>('spreader_moderator');
+  const [parameters, setParameters] = useState<GameParameters>(SCENARIOS[0].parameters);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [hasManualChanges, setHasManualChanges] = useState(false);
+  const [payoffMatrix, setPayoffMatrix] = useState<PayoffMatrixData>(
+    generatePayoffMatrix('spreader_moderator', SCENARIOS[0].parameters)
+  );
 
-  const handleRunAnalysis = () => {
-    setIsAnalyzing(true);
-    // Simulate analysis
-    setTimeout(() => setIsAnalyzing(false), 3000);
+  // Handle scenario change
+  const handleScenarioChange = (scenarioId: string) => {
+    const scenario = SCENARIOS.find((s) => s.id === scenarioId);
+    if (scenario) {
+      setSelectedScenario(scenarioId);
+      setParameters(scenario.parameters);
+      setHasManualChanges(false);
+      calculateEquilibrium(selectedInteraction, scenario.parameters);
+    }
   };
 
-  const currentMatrix = mockPayoffMatrices[selectedMatrix as keyof typeof mockPayoffMatrices];
+  // Handle parameter change
+  const handleParameterChange = (param: keyof GameParameters, value: number) => {
+    const newParams = { ...parameters, [param]: value };
+    setParameters(newParams);
+    setHasManualChanges(true);
+  };
+
+  // Calculate equilibrium
+  const calculateEquilibrium = async (interaction: string, params: GameParameters) => {
+    setIsCalculating(true);
+
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const newMatrix = generatePayoffMatrix(interaction, params);
+    setPayoffMatrix(newMatrix);
+    setIsCalculating(false);
+  };
+
+  // Handle calculate button
+  const handleCalculate = () => {
+    calculateEquilibrium(selectedInteraction, parameters);
+    setHasManualChanges(false);
+  };
+
+  // Handle interaction change
+  const handleInteractionChange = (interaction: string) => {
+    setSelectedInteraction(interaction);
+    calculateEquilibrium(interaction, parameters);
+  };
+
+  // Get current scenario
+  const currentScenario = SCENARIOS.find((s) => s.id === selectedScenario) || SCENARIOS[0];
+  const currentInteraction = PLAYER_INTERACTIONS.find((i) => i.value === selectedInteraction);
+
+  // Animated values for expected payoffs
+  const animatedPayoff1 = useCountUp(payoffMatrix.equilibrium?.payoffs[payoffMatrix.players[0]] || 0);
+  const animatedPayoff2 = useCountUp(payoffMatrix.equilibrium?.payoffs[payoffMatrix.players[1]] || 0);
 
   return (
     <div className="space-y-8">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
-          Game Theory Equilibrium Analysis
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-2">
-          Analyze strategic interactions and equilibrium outcomes in misinformation propagation scenarios.
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="flex items-center gap-3 mb-3">
+          <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+            <Target className="h-6 w-6 text-purple-600" />
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            Nash Equilibrium Analysis
+          </h1>
+        </div>
+        <p className="text-gray-600 dark:text-gray-400 text-lg">
+          Explore the strategic outcomes of the misinformation game by adjusting key parameters and scenarios
         </p>
-      </div>
+      </motion.div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="payoffs">Payoff Matrices</TabsTrigger>
-          <TabsTrigger value="analysis">Equilibrium Analysis</TabsTrigger>
-          <TabsTrigger value="configuration">Configuration</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <MetricCard
-              title="Nash Equilibria"
-              value={3}
-              icon={<Target className="h-4 w-4 text-blue-500" />}
-              description="Stable strategy combinations"
-              trend={0}
-            />
-            <MetricCard
-              title="Social Welfare"
-              value={0.58}
-              icon={<Users className="h-4 w-4 text-green-500" />}
-              description="Overall system benefit"
-              trend={5.2}
-            />
-            <MetricCard
-              title="Convergence Rate"
-              value="89%"
-              icon={<TrendingUp className="h-4 w-4 text-purple-500" />}
-              description="Games reaching equilibrium"
-              trend={2.1}
-            />
-            <MetricCard
-              title="Strategy Diversity"
-              value={0.73}
-              icon={<Zap className="h-4 w-4 text-orange-500" />}
-              description="Strategic variation index"
-              trend={-1.8}
-            />
-          </div>
-
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Run Analysis</CardTitle>
-                <CardDescription>Compute equilibria for current parameters</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  onClick={handleRunAnalysis}
-                  disabled={isAnalyzing}
-                  className="w-full"
-                >
-                  <Calculator className="w-4 h-4 mr-2" />
-                  {isAnalyzing ? 'Analyzing...' : 'Analyze Equilibria'}
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Game Simulation</CardTitle>
-                <CardDescription>Run multi-round strategic game</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full">
-                  <Play className="w-4 h-4 mr-2" />
-                  Start Game
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Export Results</CardTitle>
-                <CardDescription>Download analysis results</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full">
-                  <Download className="w-4 h-4 mr-2" />
-                  Export Data
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Strategy Evolution Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Strategy Evolution Over Time</CardTitle>
-              <CardDescription>How player strategies adapt during gameplay</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <LineChart
-                data={mockEquilibriumHistory}
-                series={[
-                  { dataKey: 'socialWelfare', name: 'Social Welfare', color: '#10b981' },
-                  { dataKey: 'nashEquilibria', name: 'Nash Equilibria Count', color: '#3b82f6' },
-                ]}
-                xAxisKey="round"
-              />
-            </CardContent>
-          </Card>
-
-          {/* Recent Analysis Results */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Analysis Results</CardTitle>
-              <CardDescription>Summary of latest equilibrium computations</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Scenario</TableHead>
-                    <TableHead>Nash Equilibria</TableHead>
-                    <TableHead>Dominant Strategy</TableHead>
-                    <TableHead>Social Welfare</TableHead>
-                    <TableHead>Convergence</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockGameResults.map((result) => (
-                    <TableRow key={result.id}>
-                      <TableCell className="font-medium">{result.scenario}</TableCell>
-                      <TableCell>{result.nashCount}</TableCell>
-                      <TableCell className="text-sm">{result.dominantStrategy}</TableCell>
-                      <TableCell>
-                        <span className="font-mono">{result.socialWelfare.toFixed(2)}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{result.convergenceRounds} rounds</span>
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(result.status)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="payoffs" className="space-y-6">
-          {/* Matrix Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Payoff Matrix Selection</CardTitle>
-              <CardDescription>Choose the strategic interaction to analyze</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {Object.entries(mockPayoffMatrices).map(([key, matrix]) => (
-                  <Button
-                    key={key}
-                    variant={selectedMatrix === key ? "default" : "outline"}
-                    onClick={() => setSelectedMatrix(key)}
-                    className="h-auto p-4 flex flex-col items-center"
-                  >
-                    <div className="font-medium">{matrix.title}</div>
-                    <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                      {matrix.players.join(" vs ")}
-                    </div>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Selected Payoff Matrix */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{currentMatrix.title} - Payoff Matrix</CardTitle>
-              <CardDescription>
-                Strategic payoffs for {currentMatrix.players.join(" vs ")} interactions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <PayoffMatrix data={currentMatrix} title={currentMatrix.title} highlightEquilibrium={true} />
-            </CardContent>
-          </Card>
-
-          {/* Strategy Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Current Strategy Distribution</CardTitle>
-              <CardDescription>How players are currently allocating their strategies</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <BarChart
-                data={mockStrategyDistribution}
-                series={[
-                  { dataKey: 'spreaders', name: 'Spreaders', color: '#ef4444' },
-                  { dataKey: 'moderators', name: 'Moderators', color: '#3b82f6' },
-                  { dataKey: 'users', name: 'Users', color: '#10b981' },
-                ]}
-                xAxisKey="strategy"
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="analysis" className="space-y-6">
-          {/* Equilibrium Analysis */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Nash Equilibrium Analysis</CardTitle>
-                <CardDescription>Detailed analysis of stable strategy profiles</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <EquilibriumAnalysis data={currentMatrix} />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Strategy Evolution</CardTitle>
-                <CardDescription>How strategies change over multiple rounds</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <StrategyEvolution data={mockEquilibriumHistory} />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Detailed Equilibrium Properties */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Equilibrium Properties</CardTitle>
-              <CardDescription>Mathematical properties of the current equilibrium</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h4 className="font-medium">Stability Analysis</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Nash Equilibrium:</span>
-                      <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                        Stable
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Evolutionary Stable:</span>
-                      <Badge variant="default" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                        Yes
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Pareto Optimal:</span>
-                      <Badge variant="default" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                        No
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Correlated Equilibrium:</span>
-                      <Badge variant="default" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                        Exists
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-medium">Welfare Analysis</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Social Welfare</span>
-                        <span className="font-mono">0.58</span>
-                      </div>
-                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                        <div className="bg-green-500 h-2 rounded-full" style={{ width: '58%' }}></div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Efficiency Loss</span>
-                        <span className="font-mono">0.23</span>
-                      </div>
-                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                        <div className="bg-red-500 h-2 rounded-full" style={{ width: '23%' }}></div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Fairness Index</span>
-                        <span className="font-mono">0.71</span>
-                      </div>
-                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                        <div className="bg-blue-500 h-2 rounded-full" style={{ width: '71%' }}></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 pt-6 border-t">
-                <h4 className="font-medium mb-4">Mixed Strategy Probabilities</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h5 className="text-sm font-medium mb-2">Spreader Strategies</h5>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>Aggressive:</span>
-                        <span className="font-mono">0.35 (35%)</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Conservative:</span>
-                        <span className="font-mono">0.65 (65%)</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h5 className="text-sm font-medium mb-2">Moderator Strategies</h5>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>Strict:</span>
-                        <span className="font-mono">0.40 (40%)</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Lenient:</span>
-                        <span className="font-mono">0.60 (60%)</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="configuration" className="space-y-6">
-          {/* Game Parameters Configuration */}
-          <Card>
+      {/* Two-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column: Interactive Controls */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="lg:col-span-1 space-y-6"
+        >
+          <Card className="sticky top-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Settings className="w-5 h-5" />
-                Game Theory Parameters
+                <Sparkles className="h-5 w-5 text-purple-600" />
+                Controls
               </CardTitle>
-              <CardDescription>
-                Configure the strategic game parameters and equilibrium analysis settings
-              </CardDescription>
+              <CardDescription>Configure game parameters and scenarios</CardDescription>
             </CardHeader>
-            <CardContent>
-              <GameParametersForm
-                onSubmit={(parameters) => {
-                  console.log('Game parameters:', parameters);
-                  handleRunAnalysis();
-                }}
-                isLoading={isAnalyzing}
-              />
+            <CardContent className="space-y-6">
+              {/* Scenario Selector */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                  Scenario
+                </label>
+                <Select value={selectedScenario} onValueChange={handleScenarioChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SCENARIOS.map((scenario) => (
+                      <SelectItem key={scenario.id} value={scenario.id}>
+                        {scenario.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 mt-2">{currentScenario.description}</p>
+              </div>
+
+              {/* Player Interaction Selector */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                  Player Interaction
+                </label>
+                <Select value={selectedInteraction} onValueChange={handleInteractionChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLAYER_INTERACTIONS.map((interaction) => (
+                      <SelectItem key={interaction.value} value={interaction.value}>
+                        {interaction.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                  Game Parameters
+                </h3>
+
+                {/* Detection Penalty Slider */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm text-gray-700 dark:text-gray-300">
+                      Detection Penalty
+                    </label>
+                    <Badge variant="outline">{parameters.detectionPenalty}%</Badge>
+                  </div>
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={[parameters.detectionPenalty]}
+                    onValueChange={(value) => handleParameterChange('detectionPenalty', value[0])}
+                  />
+                  <p className="text-xs text-gray-500">Cost for spreaders when fake news is detected</p>
+                </div>
+
+                {/* Verification Cost Slider */}
+                <div className="space-y-3 mt-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm text-gray-700 dark:text-gray-300">
+                      Verification Cost
+                    </label>
+                    <Badge variant="outline">{parameters.verificationCost}%</Badge>
+                  </div>
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={[parameters.verificationCost]}
+                    onValueChange={(value) => handleParameterChange('verificationCost', value[0])}
+                  />
+                  <p className="text-xs text-gray-500">Resource cost for fact-checkers to verify content</p>
+                </div>
+
+                {/* Engagement Revenue Slider */}
+                <div className="space-y-3 mt-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm text-gray-700 dark:text-gray-300">
+                      Engagement Revenue
+                    </label>
+                    <Badge variant="outline">{parameters.engagementRevenue}%</Badge>
+                  </div>
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={[parameters.engagementRevenue]}
+                    onValueChange={(value) => handleParameterChange('engagementRevenue', value[0])}
+                  />
+                  <p className="text-xs text-gray-500">Platform revenue from user engagement</p>
+                </div>
+
+                {/* Network Density Slider */}
+                <div className="space-y-3 mt-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm text-gray-700 dark:text-gray-300">
+                      Network Density
+                    </label>
+                    <Badge variant="outline">{parameters.networkDensity}%</Badge>
+                  </div>
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={[parameters.networkDensity]}
+                    onValueChange={(value) => handleParameterChange('networkDensity', value[0])}
+                  />
+                  <p className="text-xs text-gray-500">Connectivity of the social network</p>
+                </div>
+
+                {/* Learning Rate Slider */}
+                <div className="space-y-3 mt-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm text-gray-700 dark:text-gray-300">
+                      Learning Rate
+                    </label>
+                    <Badge variant="outline">{parameters.learningRate}%</Badge>
+                  </div>
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={[parameters.learningRate]}
+                    onValueChange={(value) => handleParameterChange('learningRate', value[0])}
+                  />
+                  <p className="text-xs text-gray-500">Speed at which players adapt strategies</p>
+                </div>
+              </div>
+
+              {/* Calculate Button */}
+              <Button
+                onClick={handleCalculate}
+                disabled={!hasManualChanges || isCalculating}
+                size="lg"
+                className="w-full"
+              >
+                {isCalculating ? (
+                  <>
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Calculating...
+                  </>
+                ) : (
+                  <>
+                    <Calculator className="mr-2 h-4 w-4" />
+                    Calculate Equilibrium
+                  </>
+                )}
+              </Button>
+
+              {!hasManualChanges && (
+                <p className="text-xs text-center text-gray-500">
+                  Adjust sliders to enable calculation
+                </p>
+              )}
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </motion.div>
+
+        {/* Right Column: Results Display */}
+        <div className="lg:col-span-2 space-y-6">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${selectedInteraction}-${JSON.stringify(parameters)}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+              className="space-y-6"
+            >
+              {/* Payoff Matrix */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-blue-600" />
+                    Payoff Matrix
+                  </CardTitle>
+                  <CardDescription>
+                    Strategic payoffs for {currentInteraction?.players.join(' vs. ')} interaction
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <PayoffMatrix
+                    data={payoffMatrix}
+                    title={currentInteraction?.label || ''}
+                    highlightEquilibrium={true}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Equilibrium Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5 text-purple-600" />
+                    Equilibrium Analysis
+                  </CardTitle>
+                  <CardDescription>Detailed analysis of the Nash equilibrium</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Pure Strategy Equilibrium */}
+                  {payoffMatrix.equilibrium && (
+                    <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                      <div className="flex items-center gap-2 mb-3">
+                        <CheckCircle2 className="h-5 w-5 text-purple-600" />
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                          Pure Strategy Equilibrium
+                        </h4>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <p className="text-gray-700 dark:text-gray-300">
+                          <span className="font-medium">{payoffMatrix.players[0]}:</span>{' '}
+                          {
+                            payoffMatrix.strategies[payoffMatrix.players[0]][
+                              payoffMatrix.equilibrium.strategies[0]
+                            ]
+                          }
+                        </p>
+                        <p className="text-gray-700 dark:text-gray-300">
+                          <span className="font-medium">{payoffMatrix.players[1]}:</span>{' '}
+                          {
+                            payoffMatrix.strategies[payoffMatrix.players[1]][
+                              payoffMatrix.equilibrium.strategies[1]
+                            ]
+                          }
+                        </p>
+                        <div className="pt-2 mt-2 border-t border-purple-200 dark:border-purple-800">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="outline"
+                              className="border-purple-500 text-purple-700 dark:text-purple-400"
+                            >
+                              {payoffMatrix.equilibrium.type === 'pure' ? 'Pure Strategy' : 'Mixed Strategy'}
+                            </Badge>
+                            <Badge
+                              variant="outline"
+                              className="border-green-500 text-green-700 dark:text-green-400"
+                            >
+                              Stability: {(payoffMatrix.equilibrium.stability * 100).toFixed(0)}%
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Expected Payoffs */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                      Expected Payoffs at Equilibrium
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+                      >
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                          {payoffMatrix.players[0]}
+                        </div>
+                        <div className="text-2xl font-bold text-blue-700 dark:text-blue-400">
+                          {animatedPayoff1.toFixed(2)}
+                        </div>
+                      </motion.div>
+
+                      <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.3 }}
+                        className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800"
+                      >
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                          {payoffMatrix.players[1]}
+                        </div>
+                        <div className="text-2xl font-bold text-red-700 dark:text-red-400">
+                          {animatedPayoff2.toFixed(2)}
+                        </div>
+                      </motion.div>
+                    </div>
+                  </div>
+
+                  {/* Analysis and Insights */}
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Strategic Insight</AlertTitle>
+                    <AlertDescription>
+                      {parameters.detectionPenalty > 70 ? (
+                        <>
+                          Under high detection penalties, spreaders are incentivized to shift towards more
+                          truthful content to avoid significant reputation costs. This creates a more stable
+                          equilibrium where misinformation is naturally suppressed.
+                        </>
+                      ) : parameters.engagementRevenue > 70 ? (
+                        <>
+                          With high engagement revenue, platforms face conflicting incentives between content
+                          moderation and profit maximization. This can lead to suboptimal equilibria where
+                          misinformation persists despite available detection tools.
+                        </>
+                      ) : parameters.verificationCost > 60 ? (
+                        <>
+                          High verification costs discourage comprehensive fact-checking, creating
+                          opportunities for sophisticated misinformation to spread. Reducing these costs
+                          through automation or crowdsourcing could improve equilibrium outcomes.
+                        </>
+                      ) : (
+                        <>
+                          The current parameter configuration represents a balanced scenario where multiple
+                          strategic forces interact. Players must carefully weigh the trade-offs between
+                          aggressive strategies (higher payoff potential) and conservative approaches (lower
+                          risk).
+                        </>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+
+                  {/* Additional Metrics */}
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                    <div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                        Equilibrium Type
+                      </div>
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">
+                        {payoffMatrix.equilibrium?.classification === 'strict'
+                          ? 'Strict Nash'
+                          : payoffMatrix.equilibrium?.classification === 'weak'
+                          ? 'Weak Nash'
+                          : 'Trembling Hand Perfect'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                        Social Welfare
+                      </div>
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">
+                        {(
+                          (animatedPayoff1 + animatedPayoff2) /
+                          2
+                        ).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
     </div>
   );
 }
