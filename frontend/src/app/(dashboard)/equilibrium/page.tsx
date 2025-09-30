@@ -20,53 +20,59 @@ import { BarChart } from '@/components/charts/BarChart';
 const mockPayoffMatrices = {
   spreaderVsModerator: {
     title: "Spreader vs Moderator",
-    players: ["Spreader", "Moderator"],
-    strategies: [
-      ["Aggressive", "Conservative"],
-      ["Strict", "Lenient"]
-    ],
+    players: ["Spreader", "Moderator"] as [string, string],
+    strategies: {
+      "Spreader": ["Aggressive", "Conservative"],
+      "Moderator": ["Strict", "Lenient"]
+    },
     payoffs: [
-      [[2.5, -1.8], [-0.5, 1.2]],  // Spreader Aggressive vs Moderator strategies
-      [[1.0, -0.8], [0.8, 0.5]]    // Spreader Conservative vs Moderator strategies
+      [{ "Spreader": 2.5, "Moderator": -1.8 }, { "Spreader": -0.5, "Moderator": 1.2 }],
+      [{ "Spreader": 1.0, "Moderator": -0.8 }, { "Spreader": 0.8, "Moderator": 0.5 }]
     ],
     equilibrium: {
-      strategies: [0, 1],
-      payoffs: [1.2, -0.8],
-      type: "Nash Equilibrium"
+      strategies: [0, 1] as [number, number],
+      payoffs: { "Spreader": 1.2, "Moderator": -0.8 },
+      type: "pure" as const,
+      stability: 0.85,
+      classification: "strict" as const
     }
   },
   spreaderVsUser: {
     title: "Spreader vs User",
-    players: ["Spreader", "User"],
-    strategies: [
-      ["High Sophistication", "Low Sophistication"],
-      ["Critical Thinking", "Passive Consumption"]
-    ],
+    players: ["Spreader", "User"] as [string, string],
+    strategies: {
+      "Spreader": ["High Sophistication", "Low Sophistication"],
+      "User": ["Critical Thinking", "Passive Consumption"]
+    },
     payoffs: [
-      [[3.2, -2.1], [1.8, -0.9]],  // High Sophistication vs User strategies
-      [[2.1, -1.2], [0.9, -0.3]]   // Low Sophistication vs User strategies
+      [{ "Spreader": 3.2, "User": -2.1 }, { "Spreader": 1.8, "User": -0.9 }],
+      [{ "Spreader": 2.1, "User": -1.2 }, { "Spreader": 0.9, "User": -0.3 }]
     ],
     equilibrium: {
-      strategies: [1, 0],
-      payoffs: [2.1, -1.2],
-      type: "Nash Equilibrium"
+      strategies: [1, 0] as [number, number],
+      payoffs: { "Spreader": 2.1, "User": -1.2 },
+      type: "pure" as const,
+      stability: 0.78,
+      classification: "strict" as const
     }
   },
   moderatorVsUser: {
     title: "Moderator vs User",
-    players: ["Moderator", "User"],
-    strategies: [
-      ["Proactive", "Reactive"],
-      ["Report", "Ignore"]
-    ],
+    players: ["Moderator", "User"] as [string, string],
+    strategies: {
+      "Moderator": ["Proactive", "Reactive"],
+      "User": ["Report", "Ignore"]
+    },
     payoffs: [
-      [[1.5, 1.2], [0.8, -0.5]],  // Proactive vs User strategies
-      [[0.9, 0.8], [0.3, 0.1]]    // Reactive vs User strategies
+      [{ "Moderator": 1.5, "User": 1.2 }, { "Moderator": 0.8, "User": -0.5 }],
+      [{ "Moderator": 0.9, "User": 0.8 }, { "Moderator": 0.3, "User": 0.1 }]
     ],
     equilibrium: {
-      strategies: [0, 0],
-      payoffs: [1.5, 1.2],
-      type: "Nash Equilibrium"
+      strategies: [0, 0] as [number, number],
+      payoffs: { "Moderator": 1.5, "User": 1.2 },
+      type: "pure" as const,
+      stability: 0.92,
+      classification: "strict" as const
     }
   }
 };
@@ -298,7 +304,6 @@ export default function EquilibriumPage() {
                   { dataKey: 'nashEquilibria', name: 'Nash Equilibria Count', color: '#3b82f6' },
                 ]}
                 xAxisKey="round"
-                height={300}
               />
             </CardContent>
           </Card>
@@ -379,7 +384,7 @@ export default function EquilibriumPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <PayoffMatrix data={currentMatrix} highlightEquilibrium={true} />
+              <PayoffMatrix data={currentMatrix} title={currentMatrix.title} highlightEquilibrium={true} />
             </CardContent>
           </Card>
 
@@ -398,7 +403,6 @@ export default function EquilibriumPage() {
                   { dataKey: 'users', name: 'Users', color: '#10b981' },
                 ]}
                 xAxisKey="strategy"
-                height={300}
               />
             </CardContent>
           </Card>

@@ -1,0 +1,440 @@
+/* /home/ghost/fake-news-game-theory/frontend/src/app/globals.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ================================================================
+   Design Token System - CSS Custom Properties
+   ================================================================ */
+
+:root {
+  /* Primary Brand Colors */
+  --color-primary: 37 99 235; /* Blue-600 */
+  --color-primary-hover: 29 78 216; /* Blue-700 */
+  --color-secondary: 139 92 246; /* Violet-500 */
+  
+  /* Grayscale Palette */
+  --color-gray-50: 249 250 251;
+  --color-gray-100: 243 244 246;
+  --color-gray-200: 229 231 235;
+  --color-gray-300: 209 213 219;
+  --color-gray-400: 156 163 175;
+  --color-gray-500: 107 114 128;
+  --color-gray-600: 75 85 99;
+  --color-gray-700: 55 65 81;
+  --color-gray-800: 31 41 55;
+  --color-gray-900: 17 24 39;
+  --color-gray-950: 3 7 18;
+  
+  /* Semantic Colors */
+  --color-success: 34 197 94; /* Green-500 */
+  --color-warning: 234 179 8; /* Yellow-500 */
+  --color-error: 239 68 68; /* Red-500 */
+  --color-info: 59 130 246; /* Blue-500 */
+  
+  /* Background & Foreground */
+  --background: 255 255 255;
+  --foreground: 17 24 39;
+  --muted: 243 244 246;
+  --muted-foreground: 107 114 128;
+  
+  /* Card & Border */
+  --card: 255 255 255;
+  --card-foreground: 17 24 39;
+  --border: 229 231 235;
+  --input: 229 231 235;
+  
+  /* Typography */
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', 
+               Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', 
+               'Courier New', monospace;
+  
+  /* Layout */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+}
+
+/* Dark Theme Overrides */
+.dark {
+  /* Inverted Background & Foreground */
+  --background: 3 7 18;
+  --foreground: 249 250 251;
+  --muted: 31 41 55;
+  --muted-foreground: 156 163 175;
+  
+  /* Card & Border */
+  --card: 17 24 39;
+  --card-foreground: 249 250 251;
+  --border: 55 65 81;
+  --input: 55 65 81;
+  
+  /* Adjusted Shadows for Dark Mode */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6);
+}
+
+/* ================================================================
+   Base Layer - Global Element Styling
+   ================================================================ */
+
+@layer base {
+  /* Body Defaults */
+  body {
+    @apply bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-50;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  
+  /* Typography Inheritance */
+  h1, h2, h3, h4, h5, h6, p, span, div {
+    font-family: var(--font-sans);
+  }
+  
+  /* Monospace Elements */
+  code, pre, kbd, samp {
+    font-family: var(--font-mono);
+  }
+  
+  /* Custom Scrollbar - Webkit Browsers */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-gray-900;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-700 rounded-full;
+    transition: background-color 0.2s ease;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-gray-600;
+  }
+  
+  /* Firefox Scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-gray-300)) rgb(var(--color-gray-100));
+  }
+  
+  .dark * {
+    scrollbar-color: rgb(var(--color-gray-700)) rgb(var(--color-gray-900));
+  }
+  
+  /* Custom Text Selection Color */
+  ::selection {
+    background-color: rgb(var(--color-primary) / 0.2);
+    color: rgb(var(--color-primary));
+  }
+  
+  .dark ::selection {
+    background-color: rgb(var(--color-primary) / 0.3);
+    color: rgb(var(--color-gray-50));
+  }
+  
+  /* Focus Visible States - Accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-950;
+    transition: box-shadow 0.15s ease-in-out;
+  }
+  
+  /* Smooth Anchor Scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Remove default button styles */
+  button {
+    @apply cursor-pointer;
+  }
+  
+  button:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+  
+  /* Input and Textarea Base Styles */
+  input, textarea, select {
+    @apply bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700;
+    @apply text-gray-900 dark:text-gray-100;
+    @apply placeholder:text-gray-400 dark:placeholder:text-gray-600;
+  }
+  
+  /* Remove number input spinners */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+  
+  /* Link Styles */
+  a {
+    @apply text-blue-600 dark:text-blue-400;
+    @apply transition-colors duration-150;
+  }
+  
+  a:hover {
+    @apply text-blue-700 dark:text-blue-300;
+  }
+}
+
+/* ================================================================
+   Component Layer - Reusable Patterns
+   ================================================================ */
+
+@layer components {
+  /* Card Component Base */
+  .card {
+    @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800;
+    @apply rounded-lg shadow-sm;
+    @apply transition-shadow duration-200;
+  }
+  
+  .card:hover {
+    @apply shadow-md;
+  }
+  
+  /* Gradient Text Effect */
+  .gradient-text {
+    @apply bg-gradient-to-r from-blue-600 to-violet-600;
+    @apply bg-clip-text text-transparent;
+  }
+  
+  /* Glass Morphism Effect */
+  .glass {
+    @apply bg-white/80 dark:bg-gray-900/80;
+    @apply backdrop-blur-md;
+    @apply border border-gray-200/50 dark:border-gray-700/50;
+  }
+  
+  /* Network Node Styles */
+  .network-node {
+    @apply rounded-full shadow-lg;
+    @apply transition-all duration-300;
+    @apply hover:scale-110 hover:shadow-xl;
+  }
+  
+  /* Payoff Matrix Cell */
+  .payoff-cell {
+    @apply border border-gray-300 dark:border-gray-700;
+    @apply p-2 text-center text-sm;
+    @apply transition-colors duration-150;
+  }
+  
+  .payoff-cell:hover {
+    @apply bg-gray-50 dark:bg-gray-800;
+  }
+  
+  /* Nash Equilibrium Highlight */
+  .nash-equilibrium {
+    @apply bg-yellow-100 dark:bg-yellow-900/30;
+    @apply border-yellow-400 dark:border-yellow-600;
+    @apply font-semibold;
+  }
+}
+
+/* ================================================================
+   Utilities Layer - Custom Helper Classes
+   ================================================================ */
+
+@layer utilities {
+  /* Smooth Transitions */
+  .transition-smooth {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+  
+  /* Text Gradient Utilities */
+  .text-gradient-blue {
+    @apply bg-gradient-to-r from-blue-500 to-blue-700;
+    @apply bg-clip-text text-transparent;
+  }
+  
+  .text-gradient-purple {
+    @apply bg-gradient-to-r from-purple-500 to-pink-500;
+    @apply bg-clip-text text-transparent;
+  }
+  
+  /* Animation Delays */
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+  
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+  
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+  
+  /* Hide Scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Backdrop Blur Utilities */
+  .backdrop-blur-xs {
+    backdrop-filter: blur(2px);
+  }
+  
+  /* Grid Utilities for Complex Layouts */
+  .grid-auto-fit {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+  
+  .grid-auto-fill {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+  
+  /* Safe Area Insets for Mobile */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Writing Mode Utilities */
+  .writing-vertical {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+  
+  /* Aspect Ratio Utilities (for older browsers) */
+  .aspect-video-legacy {
+    aspect-ratio: 16 / 9;
+  }
+  
+  @supports not (aspect-ratio: 16 / 9) {
+    .aspect-video-legacy::before {
+      float: left;
+      padding-top: 56.25%;
+      content: '';
+    }
+    
+    .aspect-video-legacy::after {
+      display: block;
+      content: '';
+      clear: both;
+    }
+  }
+}
+
+/* ================================================================
+   Custom Animations
+   ================================================================ */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+  background: linear-gradient(
+    to right,
+    rgb(var(--color-gray-200)) 0%,
+    rgb(var(--color-gray-300)) 50%,
+    rgb(var(--color-gray-200)) 100%
+  );
+  background-size: 1000px 100%;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(
+    to right,
+    rgb(var(--color-gray-800)) 0%,
+    rgb(var(--color-gray-700)) 50%,
+    rgb(var(--color-gray-800)) 100%
+  );
+}
+
+/* ================================================================
+   Print Styles
+   ================================================================ */
+
+@media print {
+  * {
+    @apply text-black bg-white;
+  }
+  
+  body {
+    @apply text-sm;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  a {
+    text-decoration: underline;
+  }
+  
+  a[href]:after {
+    content: " (" attr(href) ")";
+  }
+}

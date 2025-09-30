@@ -1456,3 +1456,252 @@ Phase 19-20: Documentation & Infrastructure (lines 159-175)
 Phase 21: Jupyter Notebooks (lines 176-182)
 
 This roadmap provides approximately 187 distinct implementation steps organized logically for efficient development.
+
+---
+
+## 📋 CURRENT PROJECT FILE STRUCTURE (AS OF 2025-09-30)
+
+### 📊 Project Statistics
+- **Total Files:** 440 files (excluding node_modules, cache, build artifacts)
+- **Backend Python Files:** ~80 files
+- **Frontend TypeScript Files:** ~150 files
+- **Jupyter Notebooks:** 8 notebooks
+- **Configuration Files:** ~30 files
+- **Infrastructure Files:** ~40 files
+- **Data Files:** ~30 files
+
+### 🗂️ Root Level Files
+```
+.
+├── .claude/settings.local.json
+├── .conda-env
+├── .dockerignore
+├── .editorconfig
+├── .gitattributes
+├── .gitignore
+├── CHANGELOG.md
+├── CODE_OF_CONDUCT.md
+├── COMPLETE_FILE_STRUCTURE.md (NEW - Complete file listing)
+├── CONTRIBUTING.md
+├── GTDS PROJECT DOCUMENTATION.odt
+├── LICENSE
+├── Makefile
+├── README.md
+├── SECURITY.md
+└── WORKFLOW.md (THIS FILE)
+```
+
+### 📁 Major Directory Structure
+
+#### `/backend/` - Python Backend (80 files)
+```
+backend/
+├── app/
+│   ├── api/v1/ (6 files) - API endpoints
+│   ├── core/ (6 files) - Core configuration
+│   ├── models/ (10 files) - Pydantic schemas
+│   ├── routers/ (5 files) - Route definitions
+│   ├── services/ (6 files) - Business logic
+│   └── utils/ (5 files) - Utility functions
+├── game_theory/ (7 files) - Game theory engine
+├── ml_models/
+│   ├── classifiers/ (6 files) - ML classifiers
+│   ├── evaluation/ (4 files) - Model evaluation
+│   └── preprocessing/ (4 files) - Data preprocessing
+├── network/ (5 files) - Network analysis
+├── scripts/ (4 files) - Utility scripts
+└── tests/ (16 files) - Backend tests
+```
+
+#### `/frontend/` - Next.js Frontend (150+ files)
+```
+frontend/
+├── src/
+│   ├── app/ - Next.js App Router
+│   │   ├── (dashboard)/ (4 route groups)
+│   │   ├── api/ (10 API routes)
+│   │   ├── about/, datasets/, research/
+│   │   └── layout.tsx, page.tsx, globals.css
+│   ├── components/
+│   │   ├── charts/ (9 files)
+│   │   ├── common/ (5 files)
+│   │   ├── data-display/ (5 files)
+│   │   ├── forms/ (4 files)
+│   │   ├── game-theory/ (7 files)
+│   │   ├── layout/ (5 files)
+│   │   ├── simulation/ (2 files)
+│   │   └── ui/ (19 files)
+│   ├── config/ (4 files)
+│   ├── hooks/ (8 files)
+│   ├── lib/ (8 files)
+│   ├── store/ (6 files)
+│   ├── styles/ (3 files)
+│   └── types/ (7 files)
+├── public/ (icons, images, robots.txt)
+├── tests/ (3 test files)
+└── Configuration files (11 files)
+```
+
+#### `/data/` - Data Storage (30+ files)
+```
+data/
+├── models/
+│   └── best_random_forest_20250929_102955/ (trained model)
+├── processed/
+│   ├── features/ (14 files) - Engineered features
+│   ├── test/ (2 files) - X_test.csv, y_test.csv
+│   ├── train/ (2 files) - X_train.csv, y_train.csv
+│   ├── validation/ (2 files) - X_val.csv, y_val.csv
+│   └── simulation_results.csv
+├── raw/
+│   ├── fakenewsnet/ (4 CSV files)
+│   ├── kaggle_fake_news/ (2 CSV files)
+│   └── liar_dataset/ (4 TSV files)
+└── results/
+    ├── figures/ (2 PNG files)
+    ├── reports/ (4 JSON files)
+    └── Various analysis results (5 files)
+```
+
+#### `/notebooks/` - Jupyter Notebooks (8 files)
+```
+notebooks/
+├── 01_data_exploration.ipynb
+├── 02_feature_engineering.ipynb
+├── 03_model_training.ipynb
+├── 04_network_analysis.ipynb
+├── 05_game_theory_analysis.ipynb
+├── 06_simulation_experiments.ipynb
+├── 07_results_visualization.ipynb
+├── NOTEBOOK_FILE_OUTPUTS.md (NEW - Notebook output tracking)
+├── run_analysis.py
+└── run_training.py
+```
+
+#### `/infrastructure/` - DevOps & IaC (40 files)
+```
+infrastructure/
+├── kubernetes/
+│   ├── base/ (11 YAML files)
+│   ├── monitoring/ (2 YAML files)
+│   ├── production/ (2 files)
+│   └── staging/ (2 files)
+├── monitoring/
+│   ├── alertmanager/ (1 file)
+│   ├── grafana/ (dashboards, datasources, provisioning)
+│   ├── rules/ (1 file)
+│   └── prometheus.yml
+├── terraform/
+│   ├── environments/ (production, staging)
+│   ├── modules/ (compute, database, vpc)
+│   └── Main configuration (4 .tf files)
+└── scripts/ (2 shell scripts)
+```
+
+#### `/docs/` - Documentation (20 files)
+```
+docs/
+├── api/ (2 MD files)
+├── methodology/ (3 MD files)
+├── tutorials/ (3 MD files)
+└── Root docs (4 MD files)
+```
+
+#### `/results/` - Analysis Output (25+ files)
+```
+results/
+├── enhanced_network_analysis/
+│   ├── figures/ (2 PNG files)
+│   └── Analysis results (5 files)
+└── network_analysis/
+    ├── figures/ (7 PNG files)
+    └── Analysis results (5 files)
+```
+
+#### `/reports/` - Simulation Reports (8 files)
+```
+reports/
+├── figures/ (5 PNG files)
+├── simulation_experiments_summary.json
+└── simulation_summary.txt
+```
+
+#### `/scripts/` - Project Scripts (7 files)
+```
+scripts/
+├── backup-data.sh
+├── deploy.sh
+├── install-dependencies.sh
+├── run-dev.sh
+├── run-prod.sh
+├── setup.sh
+└── test-all.sh
+```
+
+#### `/.github/` - GitHub Configuration (11 files)
+```
+.github/
+├── ISSUE_TEMPLATE/ (3 MD files)
+├── PULL_REQUEST_TEMPLATE/ (1 MD file)
+├── workflows/ (4 YAML files: CI, CD, test, security)
+├── FUNDING.yml
+└── gitleaks.toml
+```
+
+#### `/config/` - Configuration (7 files)
+```
+config/
+├── database/init.sql
+├── docker-compose.yml
+├── docker-compose.dev.yml
+├── docker-compose.prod.yml
+├── docker-compose.test.yml
+├── nginx.conf
+└── .env.example
+```
+
+#### `/assets/` - Static Assets
+```
+assets/
+├── images/results-preview/
+├── papers/ (literature-review, methodology, results)
+└── presentations/
+```
+
+---
+
+### 🔗 Quick Reference Links
+
+**Detailed File Structure:** See `COMPLETE_FILE_STRUCTURE.md` for the complete tree view
+
+**Notebook Output Tracking:** See `notebooks/NOTEBOOK_FILE_OUTPUTS.md` for where each notebook saves files
+
+**Data Analysis:** See `data/DATASET_ANALYSIS.md` for dataset information
+
+---
+
+### 📌 Key File Locations
+
+| Purpose | Location |
+|---------|----------|
+| Backend Entry Point | `/backend/app/main.py` |
+| Frontend Entry Point | `/frontend/src/app/page.tsx` |
+| Game Theory Engine | `/backend/game_theory/` |
+| ML Classifiers | `/backend/ml_models/classifiers/` |
+| Network Analysis | `/backend/network/` |
+| API Endpoints (Backend) | `/backend/app/api/v1/` |
+| API Routes (Frontend) | `/frontend/src/app/api/` |
+| UI Components | `/frontend/src/components/` |
+| State Management | `/frontend/src/store/` |
+| Custom Hooks | `/frontend/src/hooks/` |
+| Trained Models | `/data/models/` |
+| Processed Data | `/data/processed/` |
+| Analysis Results | `/results/` and `/reports/` |
+| Jupyter Notebooks | `/notebooks/` |
+| Infrastructure | `/infrastructure/` |
+| Documentation | `/docs/` |
+| CI/CD Workflows | `.github/workflows/` |
+
+---
+
+**Note:** This file structure represents the current state of the project as of 2025-09-30. For the most up-to-date information, run `find . -type f -not -path "./frontend/node_modules/*" -not -path "./.git/*" -not -path "*/__pycache__/*" | wc -l` in the project root.
