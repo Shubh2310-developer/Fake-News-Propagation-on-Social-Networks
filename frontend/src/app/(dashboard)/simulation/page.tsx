@@ -33,9 +33,12 @@ import { cn } from '@/lib/utils';
 // Types and Mock Data
 // ================================================================
 
-// Mock network data generator
+// Mock network data generator - Optimized for performance
 function generateMockNetworkData(nodeCount: number = 100) {
-  const nodes = Array.from({ length: nodeCount }, (_, i) => ({
+  // Limit node count for performance
+  const limitedNodeCount = Math.min(nodeCount, 150);
+
+  const nodes = Array.from({ length: limitedNodeCount }, (_, i) => ({
     id: `node-${i}`,
     type: i < 5 ? 'spreader' : i < 15 ? 'moderator' : i < 20 ? 'bot' : 'user',
     status: i < 5 ? 'infected' : 'susceptible',
@@ -45,9 +48,11 @@ function generateMockNetworkData(nodeCount: number = 100) {
   })) as any[];
 
   const links = [];
-  for (let i = 0; i < nodeCount * 2; i++) {
-    const source = Math.floor(Math.random() * nodeCount);
-    const target = Math.floor(Math.random() * nodeCount);
+  // Reduce link density for better performance (1.5x instead of 2x)
+  const linkCount = Math.floor(limitedNodeCount * 1.5);
+  for (let i = 0; i < linkCount; i++) {
+    const source = Math.floor(Math.random() * limitedNodeCount);
+    const target = Math.floor(Math.random() * limitedNodeCount);
     if (source !== target) {
       links.push({
         source: `node-${source}`,
@@ -200,7 +205,7 @@ export default function SimulationPage() {
     resetSimulation,
   } = useSimulationStore();
 
-  const [networkData, setNetworkData] = useState(generateMockNetworkData(gameParameters.network?.size || 1000));
+  const [networkData, setNetworkData] = useState(generateMockNetworkData(gameParameters.network?.size || 100));
   const [showResults, setShowResults] = useState(false);
 
   // Update network when simulation completes
@@ -208,7 +213,7 @@ export default function SimulationPage() {
     if (simulationState === 'completed' && results) {
       setShowResults(true);
       // Update network with simulation results
-      setNetworkData(generateMockNetworkData(gameParameters.network?.size || 1000));
+      setNetworkData(generateMockNetworkData(gameParameters.network?.size || 100));
     }
   }, [simulationState, results, gameParameters.network?.size]);
 
@@ -276,16 +281,17 @@ export default function SimulationPage() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        className="mb-6"
       >
         <div className="flex items-center gap-3 mb-3">
-          <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+          <div className="p-3 bg-green-100 rounded-lg">
             <Network className="h-6 w-6 text-green-600" />
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-gray-900">
             Game Theory Simulation
           </h1>
         </div>
-        <p className="text-gray-600 dark:text-gray-400 text-lg">
+        <p className="text-gray-600 text-base">
           Model and visualize fake news propagation through strategic interactions on a social network
         </p>
       </motion.div>
@@ -367,25 +373,25 @@ export default function SimulationPage() {
       </motion.div>
 
       {/* Two-Column Layout: Controls and Visualization */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Control Panel (1/3 width) */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        {/* Left Column: Control Panel (50% width) */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="lg:col-span-1"
+          className="xl:col-span-6 space-y-6 min-w-[500px]"
         >
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-purple-600" />
+          <Card className="shadow-md">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-xl font-bold text-gray-900">
+                <Target className="h-6 w-6 text-purple-600" />
                 Simulation Parameters
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm text-gray-600">
                 Configure the game theory simulation settings
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               <GameParameters
                 onSubmit={handleParametersSubmit}
                 isLoading={isRunning}
@@ -394,20 +400,26 @@ export default function SimulationPage() {
           </Card>
         </motion.div>
 
-        {/* Right Column: Network Visualization (2/3 width) */}
+        {/* Right Column: Network Visualization (50% width) */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="lg:col-span-2"
+          className="xl:col-span-6"
         >
-          <NetworkGraph
-            data={networkData}
-            width={800}
-            height={600}
-            showLabels={false}
-            highlightPaths={isRunning}
-          />
+          <Card className="shadow-md overflow-hidden">
+            <CardContent className="p-2">
+              <div className="w-full" style={{ minHeight: '850px' }}>
+                <NetworkGraph
+                  data={networkData}
+                  width={1400}
+                  height={850}
+                  showLabels={false}
+                  highlightPaths={isRunning}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
       </div>
 
@@ -427,7 +439,7 @@ export default function SimulationPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
                 Simulation Results
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

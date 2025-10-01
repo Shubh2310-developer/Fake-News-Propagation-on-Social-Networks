@@ -1,39 +1,58 @@
 // frontend/src/app/api/classifier/train/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import crypto from 'crypto';
 
-// Types for request/response
+/**
+ * ================================================================
+ * TYPE DEFINITIONS
+ * ================================================================
+ */
+
 interface TrainRequest {
-  datasetId: string;
-  modelConfig: {
-    modelType: 'bert' | 'roberta' | 'distilbert' | 'custom';
-    learningRate?: number;
-    batchSize?: number;
-    epochs?: number;
-    validationSplit?: number;
-    earlyStopping?: boolean;
-    maxLength?: number;
-    freezeLayers?: number;
+  training_data: {
+    dataset_id: string;
+    train_split?: number;
+    validation_split?: number;
+    test_split?: number;
   };
-  experimentName?: string;
+  model_config: {
+    model_type: string;
+    learning_rate?: number;
+    batch_size?: number;
+    epochs?: number;
+    max_length?: number;
+    dropout_rate?: number;
+    optimizer?: string;
+    scheduler?: string;
+    early_stopping_patience?: number;
+    save_strategy?: string;
+  };
+  experiment_name?: string;
+  description?: string;
   tags?: string[];
 }
 
 interface TrainResponse {
-  trainingId: string;
-  status: 'queued' | 'starting' | 'running';
+  training_id: string;
+  status: 'started' | 'queued';
   message: string;
-  estimatedDurationMinutes: number;
-  queuePosition?: number;
-  experiment: {
-    name: string;
-    tags: string[];
-    createdAt: string;
+  job_info: {
+    created_at: string;
+    estimated_duration_minutes?: number;
+    priority?: string;
   };
-  config: {
-    datasetId: string;
-    modelType: string;
-    parameters: object;
+  experiment?: {
+    name: string;
+    description?: string;
+    tags: string[];
+  };
+  _links: {
+    self: string;
+    status: string;
+    cancel: string;
   };
 }
 
@@ -41,82 +60,216 @@ interface ErrorResponse {
   error: string;
   code: string;
   details?: string;
+  timestamp: string;
 }
 
-// Simulate training job queue and management
-const activeTrainingJobs = new Map<string, {
-  id: string;
-  status: 'queued' | 'starting' | 'running' | 'completed' | 'failed';
-  progress: number;
-  startTime: Date;
-  estimatedEndTime: Date;
-  config: any;
-}>();
+/**
+ * ================================================================
+ * VALIDATION HELPERS
+ * ================================================================
+ */
 
-// Mock dataset validation
-const validateDataset = async (datasetId: string): Promise<{
-  exists: boolean;
-  size: number;
-  format: string;
-  samples: number;
-}> => {
-  // Simulate dataset lookup delay
-  await new Promise(resolve => setTimeout(resolve, 100));
-
-  // Mock dataset registry
-  const mockDatasets = [
-    { id: 'dataset_001', size: 45000000, format: 'csv', samples: 50000 },
-    { id: 'dataset_002', size: 23000000, format: 'json', samples: 25000 },
-    { id: 'dataset_003', size: 67000000, format: 'parquet', samples: 75000 },
-    { id: 'fake_news_v1', size: 12000000, format: 'csv', samples: 15000 },
-    { id: 'real_news_v1', size: 34000000, format: 'csv', samples: 40000 },
-  ];
-
-  const dataset = mockDatasets.find(d => d.id === datasetId);
-
-  if (!dataset) {
-    return { exists: false, size: 0, format: '', samples: 0 };
+/**
+ * Validates training data configuration
+ */
+function validateTrainingData(training_data: any): string | null {
+  if (!training_data) {
+    return 'training_data is required';
   }
 
-  return {
-    exists: true,
-    size: dataset.size,
-    format: dataset.format,
-    samples: dataset.samples
-  };
-};
+  if (typeof training_data !== 'object') {
+    return 'training_data must be an object';
+  }
 
-// Generate unique training ID
-const generateTrainingId = (): string => {
-  const timestamp = Date.now().toString(36);
-  const randomSuffix = Math.random().toString(36).substring(2, 8);
-  return `train_${timestamp}_${randomSuffix}`;
-};
+  if (!training_data.dataset_id) {
+    return 'training_data.dataset_id is required';
+  }
 
-// Estimate training duration based on config
-const estimateTrainingDuration = (config: TrainRequest['modelConfig'], samples: number): number => {
-  const baseTimePerSample = {
-    'bert': 0.5,      // seconds per sample
-    'roberta': 0.6,
-    'distilbert': 0.3,
-    'custom': 0.4
-  };
+  if (typeof training_data.dataset_id !== 'string') {
+    return 'training_data.dataset_id must be a string';
+  }
 
-  const epochs = config.epochs || 3;
-  const batchSize = config.batchSize || 16;
-  const timePerSample = baseTimePerSample[config.modelType] || 0.4;
+  // Validate splits if provided
+  if (training_data.train_split !== undefined) {
+    if (typeof training_data.train_split !== 'number' || training_data.train_split <= 0 || training_data.train_split > 1) {
+      return 'training_data.train_split must be a number between 0 and 1';
+    }
+  }
 
-  // Calculate total training time
-  const totalBatches = Math.ceil(samples / batchSize) * epochs;
-  const totalSeconds = totalBatches * timePerSample * batchSize / 60; // Convert to minutes
+  if (training_data.validation_split !== undefined) {
+    if (typeof training_data.validation_split !== 'number' || training_data.validation_split < 0 || training_data.validation_split > 1) {
+      return 'training_data.validation_split must be a number between 0 and 1';
+    }
+  }
 
-  // Add overhead for setup, validation, etc.
-  return Math.round(totalSeconds * 1.2);
-};
+  if (training_data.test_split !== undefined) {
+    if (typeof training_data.test_split !== 'number' || training_data.test_split < 0 || training_data.test_split > 1) {
+      return 'training_data.test_split must be a number between 0 and 1';
+    }
+  }
 
+  // Validate that splits sum to <= 1
+  const totalSplit = (training_data.train_split || 0.7) +
+                     (training_data.validation_split || 0.15) +
+                     (training_data.test_split || 0.15);
+
+  if (totalSplit > 1.01) { // Allow small floating point error
+    return 'training_data splits must sum to 1.0 or less';
+  }
+
+  return null;
+}
+
+/**
+ * Validates model configuration
+ */
+function validateModelConfig(model_config: any): string | null {
+  if (!model_config) {
+    return 'model_config is required';
+  }
+
+  if (typeof model_config !== 'object') {
+    return 'model_config must be an object';
+  }
+
+  if (!model_config.model_type) {
+    return 'model_config.model_type is required';
+  }
+
+  if (typeof model_config.model_type !== 'string') {
+    return 'model_config.model_type must be a string';
+  }
+
+  // Validate model type
+  const validModelTypes = [
+    'bert',
+    'roberta',
+    'distilbert',
+    'albert',
+    'xlnet',
+    'electra',
+    'lstm',
+    'gru',
+    'random_forest',
+    'gradient_boosting',
+    'svm',
+    'naive_bayes',
+    'logistic_regression',
+    'ensemble',
+  ];
+
+  if (!validModelTypes.includes(model_config.model_type)) {
+    return `model_config.model_type must be one of: ${validModelTypes.join(', ')}`;
+  }
+
+  // Validate numeric parameters
+  if (model_config.learning_rate !== undefined) {
+    if (typeof model_config.learning_rate !== 'number' || model_config.learning_rate <= 0 || model_config.learning_rate > 1) {
+      return 'model_config.learning_rate must be a number between 0 and 1';
+    }
+  }
+
+  if (model_config.batch_size !== undefined) {
+    if (typeof model_config.batch_size !== 'number' || model_config.batch_size < 1 || model_config.batch_size > 512) {
+      return 'model_config.batch_size must be a number between 1 and 512';
+    }
+  }
+
+  if (model_config.epochs !== undefined) {
+    if (typeof model_config.epochs !== 'number' || model_config.epochs < 1 || model_config.epochs > 1000) {
+      return 'model_config.epochs must be a number between 1 and 1000';
+    }
+  }
+
+  if (model_config.max_length !== undefined) {
+    if (typeof model_config.max_length !== 'number' || model_config.max_length < 1 || model_config.max_length > 2048) {
+      return 'model_config.max_length must be a number between 1 and 2048';
+    }
+  }
+
+  if (model_config.dropout_rate !== undefined) {
+    if (typeof model_config.dropout_rate !== 'number' || model_config.dropout_rate < 0 || model_config.dropout_rate > 1) {
+      return 'model_config.dropout_rate must be a number between 0 and 1';
+    }
+  }
+
+  if (model_config.early_stopping_patience !== undefined) {
+    if (typeof model_config.early_stopping_patience !== 'number' || model_config.early_stopping_patience < 1) {
+      return 'model_config.early_stopping_patience must be a positive number';
+    }
+  }
+
+  return null;
+}
+
+/**
+ * ================================================================
+ * POST /api/classifier/train
+ *
+ * Initiates a background model training job on the Python backend.
+ *
+ * Security:
+ * - NextAuth.js authentication required (401 if not authenticated)
+ * - Role-based authorization: only 'admin' or 'researcher' roles allowed (403 if unauthorized)
+ *
+ * Features:
+ * - Input validation (training_data, model_config)
+ * - Asynchronous job initiation (non-blocking)
+ * - Backend proxy with JWT forwarding
+ * - Immediate response with training_id (202 Accepted)
+ * - Comprehensive error handling
+ * ================================================================
+ */
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+
   try {
-    // Parse request body
+    // ================================================================
+    // 1. AUTHENTICATION
+    // ================================================================
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user) {
+      return NextResponse.json(
+        {
+          error: 'Authentication required',
+          code: 'UNAUTHORIZED',
+          details: 'You must be authenticated to initiate model training',
+          timestamp: new Date().toISOString(),
+        } as ErrorResponse,
+        { status: 401 }
+      );
+    }
+
+    // ================================================================
+    // 2. AUTHORIZATION (Role-Based Access Control)
+    // ================================================================
+    const userRole = session.user.role;
+    const authorizedRoles = ['admin', 'researcher'];
+
+    if (!authorizedRoles.includes(userRole)) {
+      console.warn(
+        `[TRAIN] Authorization denied for user ${session.user.id} with role '${userRole}'`
+      );
+
+      return NextResponse.json(
+        {
+          error: 'Insufficient permissions',
+          code: 'FORBIDDEN',
+          details: `Training models requires one of the following roles: ${authorizedRoles.join(', ')}. Your role: ${userRole}`,
+          timestamp: new Date().toISOString(),
+        } as ErrorResponse,
+        { status: 403 }
+      );
+    }
+
+    console.log(
+      `[TRAIN] Training request authorized for user ${session.user.id} (${userRole})`
+    );
+
+    // ================================================================
+    // 3. REQUEST BODY PARSING
+    // ================================================================
     let body: TrainRequest;
 
     try {
@@ -124,270 +277,361 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       return NextResponse.json(
         {
-          error: 'Invalid JSON in request body',
+          error: 'Invalid JSON',
           code: 'INVALID_JSON',
-          details: 'Request body must be valid JSON'
+          details: 'Request body must be valid JSON',
+          timestamp: new Date().toISOString(),
         } as ErrorResponse,
         { status: 400 }
       );
     }
 
-    // Validate required fields
-    if (!body.datasetId) {
+    // ================================================================
+    // 4. INPUT VALIDATION
+    // ================================================================
+
+    // Validate training_data
+    const trainingDataError = validateTrainingData(body.training_data);
+    if (trainingDataError) {
       return NextResponse.json(
         {
-          error: 'Missing required field: datasetId',
-          code: 'MISSING_DATASET_ID',
-          details: 'The datasetId field is required'
+          error: 'Invalid training_data',
+          code: 'VALIDATION_ERROR',
+          details: trainingDataError,
+          timestamp: new Date().toISOString(),
         } as ErrorResponse,
         { status: 400 }
       );
     }
 
-    if (!body.modelConfig) {
+    // Validate model_config
+    const modelConfigError = validateModelConfig(body.model_config);
+    if (modelConfigError) {
       return NextResponse.json(
         {
-          error: 'Missing required field: modelConfig',
-          code: 'MISSING_MODEL_CONFIG',
-          details: 'The modelConfig field is required'
+          error: 'Invalid model_config',
+          code: 'VALIDATION_ERROR',
+          details: modelConfigError,
+          timestamp: new Date().toISOString(),
         } as ErrorResponse,
         { status: 400 }
       );
     }
 
-    if (!body.modelConfig.modelType) {
+    // Validate optional fields
+    if (body.experiment_name && typeof body.experiment_name !== 'string') {
       return NextResponse.json(
         {
-          error: 'Missing required field: modelConfig.modelType',
-          code: 'MISSING_MODEL_TYPE',
-          details: 'The modelConfig.modelType field is required'
+          error: 'Invalid experiment_name',
+          code: 'VALIDATION_ERROR',
+          details: 'experiment_name must be a string',
+          timestamp: new Date().toISOString(),
         } as ErrorResponse,
         { status: 400 }
       );
     }
 
-    // Validate model type
-    const validModelTypes = ['bert', 'roberta', 'distilbert', 'custom'];
-    if (!validModelTypes.includes(body.modelConfig.modelType)) {
+    if (body.description && typeof body.description !== 'string') {
       return NextResponse.json(
         {
-          error: 'Invalid model type',
-          code: 'INVALID_MODEL_TYPE',
-          details: `Model type must be one of: ${validModelTypes.join(', ')}`
+          error: 'Invalid description',
+          code: 'VALIDATION_ERROR',
+          details: 'description must be a string',
+          timestamp: new Date().toISOString(),
         } as ErrorResponse,
         { status: 400 }
       );
     }
 
-    // Validate model configuration parameters
-    const config = body.modelConfig;
-
-    if (config.learningRate && (config.learningRate <= 0 || config.learningRate > 1)) {
+    if (body.tags && !Array.isArray(body.tags)) {
       return NextResponse.json(
         {
-          error: 'Invalid learning rate',
-          code: 'INVALID_LEARNING_RATE',
-          details: 'Learning rate must be between 0 and 1'
+          error: 'Invalid tags',
+          code: 'VALIDATION_ERROR',
+          details: 'tags must be an array',
+          timestamp: new Date().toISOString(),
         } as ErrorResponse,
         { status: 400 }
       );
     }
 
-    if (config.batchSize && (config.batchSize < 1 || config.batchSize > 128)) {
+    // ================================================================
+    // 5. BACKEND API REQUEST (Asynchronous Job Initiation)
+    // ================================================================
+    const backendApiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL;
+
+    if (!backendApiUrl) {
+      console.error('[TRAIN] Backend API URL not configured');
       return NextResponse.json(
         {
-          error: 'Invalid batch size',
-          code: 'INVALID_BATCH_SIZE',
-          details: 'Batch size must be between 1 and 128'
+          error: 'Backend configuration error',
+          code: 'BACKEND_URL_MISSING',
+          details: 'Backend API URL is not configured',
+          timestamp: new Date().toISOString(),
         } as ErrorResponse,
-        { status: 400 }
+        { status: 500 }
       );
     }
 
-    if (config.epochs && (config.epochs < 1 || config.epochs > 100)) {
-      return NextResponse.json(
-        {
-          error: 'Invalid epochs',
-          code: 'INVALID_EPOCHS',
-          details: 'Epochs must be between 1 and 100'
-        } as ErrorResponse,
-        { status: 400 }
-      );
-    }
+    const backendUrl = `${backendApiUrl}/api/v1/classifier/train`;
+    const token = session.user.id; // In production, use actual JWT token
 
-    // Validate dataset exists
-    const datasetInfo = await validateDataset(body.datasetId);
+    console.log(`[TRAIN] Initiating training job on backend: ${backendUrl}`);
+    console.log(`[TRAIN] Dataset: ${body.training_data.dataset_id}, Model: ${body.model_config.model_type}`);
 
-    if (!datasetInfo.exists) {
-      return NextResponse.json(
-        {
-          error: 'Dataset not found',
-          code: 'DATASET_NOT_FOUND',
-          details: `Dataset with ID '${body.datasetId}' does not exist`
-        } as ErrorResponse,
-        { status: 404 }
-      );
-    }
-
-    // Check if dataset has enough samples
-    if (datasetInfo.samples < 100) {
-      return NextResponse.json(
-        {
-          error: 'Insufficient training data',
-          code: 'INSUFFICIENT_DATA',
-          details: 'Dataset must contain at least 100 samples for training'
-        } as ErrorResponse,
-        { status: 400 }
-      );
-    }
-
-    // Generate training job
-    const trainingId = generateTrainingId();
-    const estimatedDuration = estimateTrainingDuration(config, datasetInfo.samples);
-    const experimentName = body.experimentName || `${config.modelType}_${new Date().toISOString().split('T')[0]}`;
-
-    // Set default configuration values
-    const finalConfig = {
-      modelType: config.modelType,
-      learningRate: config.learningRate || 2e-5,
-      batchSize: config.batchSize || 16,
-      epochs: config.epochs || 3,
-      validationSplit: config.validationSplit || 0.2,
-      earlyStopping: config.earlyStopping ?? true,
-      maxLength: config.maxLength || 512,
-      freezeLayers: config.freezeLayers || 0,
-    };
-
-    // Store training job (in real app, this would be in a database/queue)
-    const trainingJob = {
-      id: trainingId,
-      status: 'queued' as const,
-      progress: 0,
-      startTime: new Date(),
-      estimatedEndTime: new Date(Date.now() + estimatedDuration * 60 * 1000),
-      config: {
-        datasetId: body.datasetId,
-        modelConfig: finalConfig,
-        experimentName,
-        tags: body.tags || []
-      }
-    };
-
-    activeTrainingJobs.set(trainingId, trainingJob);
-
-    // Simulate job queue position
-    const queuePosition = Math.floor(Math.random() * 3) + 1;
-
-    // Prepare response
-    const response: TrainResponse = {
-      trainingId,
-      status: 'queued',
-      message: 'Training job has been queued successfully',
-      estimatedDurationMinutes: estimatedDuration,
-      queuePosition,
-      experiment: {
-        name: experimentName,
-        tags: body.tags || [],
-        createdAt: new Date().toISOString()
+    // Forward request to Python backend
+    const backendResponse = await fetch(backendUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json',
+        'User-Agent': 'NextJS-BFF/1.0',
+        'X-Request-ID': crypto.randomUUID(),
+        'X-User-ID': session.user.id,
+        'X-User-Role': session.user.role,
       },
-      config: {
-        datasetId: body.datasetId,
-        modelType: config.modelType,
-        parameters: finalConfig
+      body: JSON.stringify({
+        training_data: body.training_data,
+        model_config: body.model_config,
+        experiment_name: body.experiment_name,
+        description: body.description,
+        tags: body.tags || [],
+        user_id: session.user.id,
+      }),
+      // Timeout after 30 seconds (job initiation should be fast)
+      signal: AbortSignal.timeout(30000),
+    });
+
+    // ================================================================
+    // 6. HANDLE BACKEND ERRORS
+    // ================================================================
+    if (!backendResponse.ok) {
+      const errorBody = await backendResponse.json().catch(() => ({
+        error: 'Unknown backend error',
+      }));
+
+      console.error(
+        `[TRAIN] Backend error: ${backendResponse.status} ${backendResponse.statusText}`,
+        errorBody
+      );
+
+      if (backendResponse.status === 400) {
+        return NextResponse.json(
+          {
+            error: 'Backend validation error',
+            code: 'BACKEND_VALIDATION_ERROR',
+            details: errorBody.error || errorBody.detail || 'The backend service rejected the training request',
+            timestamp: new Date().toISOString(),
+          } as ErrorResponse,
+          { status: 400 }
+        );
       }
+
+      if (backendResponse.status === 401 || backendResponse.status === 403) {
+        return NextResponse.json(
+          {
+            error: 'Backend authentication failed',
+            code: 'BACKEND_AUTH_FAILED',
+            details: 'Failed to authenticate with backend training service',
+            timestamp: new Date().toISOString(),
+          } as ErrorResponse,
+          { status: 502 }
+        );
+      }
+
+      if (backendResponse.status === 404) {
+        return NextResponse.json(
+          {
+            error: 'Dataset not found',
+            code: 'DATASET_NOT_FOUND',
+            details: errorBody.error || 'The specified dataset does not exist on the backend',
+            timestamp: new Date().toISOString(),
+          } as ErrorResponse,
+          { status: 404 }
+        );
+      }
+
+      if (backendResponse.status === 409) {
+        return NextResponse.json(
+          {
+            error: 'Training job conflict',
+            code: 'TRAINING_CONFLICT',
+            details: errorBody.error || 'A training job with similar parameters is already running',
+            timestamp: new Date().toISOString(),
+          } as ErrorResponse,
+          { status: 409 }
+        );
+      }
+
+      if (backendResponse.status === 503) {
+        return NextResponse.json(
+          {
+            error: 'Training service unavailable',
+            code: 'SERVICE_UNAVAILABLE',
+            details: 'The training service is temporarily unavailable. Please try again later',
+            timestamp: new Date().toISOString(),
+          } as ErrorResponse,
+          { status: 503 }
+        );
+      }
+
+      // Default to 502 Bad Gateway
+      return NextResponse.json(
+        {
+          error: 'Backend service error',
+          code: 'BACKEND_ERROR',
+          details: errorBody.error || errorBody.detail || 'The backend training service encountered an error',
+          timestamp: new Date().toISOString(),
+        } as ErrorResponse,
+        { status: 502 }
+      );
+    }
+
+    // ================================================================
+    // 7. PARSE RESPONSE & RETURN IMMEDIATELY (202 Accepted)
+    // ================================================================
+    const trainingData = await backendResponse.json();
+
+    // Extract training_id from backend response
+    const trainingId = trainingData.training_id || trainingData.job_id || trainingData.id;
+
+    if (!trainingId) {
+      console.error('[TRAIN] Backend response missing training_id:', trainingData);
+      return NextResponse.json(
+        {
+          error: 'Invalid backend response',
+          code: 'INVALID_BACKEND_RESPONSE',
+          details: 'Backend did not return a training job ID',
+          timestamp: new Date().toISOString(),
+        } as ErrorResponse,
+        { status: 502 }
+      );
+    }
+
+    // Construct frontend API URLs for job management
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+
+    const response: TrainResponse = {
+      training_id: trainingId,
+      status: trainingData.status || 'started',
+      message: trainingData.message || 'Training job has been started successfully in the background',
+      job_info: {
+        created_at: trainingData.created_at || new Date().toISOString(),
+        estimated_duration_minutes: trainingData.estimated_duration_minutes,
+        priority: trainingData.priority || 'normal',
+      },
+      experiment: body.experiment_name || body.description || body.tags ? {
+        name: body.experiment_name || `training_${trainingId}`,
+        description: body.description,
+        tags: body.tags || [],
+      } : undefined,
+      _links: {
+        self: `${baseUrl}/api/classifier/train/${trainingId}`,
+        status: `${baseUrl}/api/classifier/train/${trainingId}/status`,
+        cancel: `${baseUrl}/api/classifier/train/${trainingId}/cancel`,
+      },
     };
 
-    // Log training job creation
-    console.log(`[CLASSIFIER] Training job created: ${trainingId} for dataset ${body.datasetId}`);
+    const processingTime = Date.now() - startTime;
 
-    // Simulate async job processing (in real app, this would be handled by a job queue)
-    setTimeout(() => {
-      const job = activeTrainingJobs.get(trainingId);
-      if (job) {
-        job.status = 'starting';
-        activeTrainingJobs.set(trainingId, job);
+    console.log(
+      `[TRAIN] Training job initiated successfully: ${trainingId} (${processingTime}ms)`
+    );
 
-        setTimeout(() => {
-          const runningJob = activeTrainingJobs.get(trainingId);
-          if (runningJob) {
-            runningJob.status = 'running';
-            activeTrainingJobs.set(trainingId, runningJob);
-          }
-        }, 5000);
-      }
-    }, 2000);
-
-    return NextResponse.json(response, { status: 202 });
+    // ================================================================
+    // 8. RETURN 202 ACCEPTED (Job accepted, processing in background)
+    // ================================================================
+    return NextResponse.json(response, {
+      status: 202,
+      headers: {
+        'Location': response._links.self,
+        'X-Training-ID': trainingId,
+        'X-Processing-Time': processingTime.toString(),
+      },
+    });
 
   } catch (error) {
-    console.error('[CLASSIFIER] Training initiation error:', error);
+    // ================================================================
+    // 9. HANDLE UNEXPECTED ERRORS
+    // ================================================================
+    console.error('[TRAIN] Unexpected error:', error);
 
+    // Handle timeout errors
+    if (error instanceof Error && error.name === 'AbortError') {
+      return NextResponse.json(
+        {
+          error: 'Backend request timeout',
+          code: 'REQUEST_TIMEOUT',
+          details: 'The training service did not respond in time (30s timeout)',
+          timestamp: new Date().toISOString(),
+        } as ErrorResponse,
+        { status: 504 }
+      );
+    }
+
+    // Handle network errors
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      return NextResponse.json(
+        {
+          error: 'Backend connection failed',
+          code: 'CONNECTION_FAILED',
+          details: 'Unable to connect to the training service',
+          timestamp: new Date().toISOString(),
+        } as ErrorResponse,
+        { status: 503 }
+      );
+    }
+
+    // Generic error
     return NextResponse.json(
       {
-        error: 'Internal server error during training initiation',
-        code: 'TRAINING_INIT_FAILED',
-        details: 'An unexpected error occurred while initiating the training job'
+        error: 'Internal server error',
+        code: 'INTERNAL_SERVER_ERROR',
+        details: 'An unexpected error occurred during training job initiation',
+        timestamp: new Date().toISOString(),
       } as ErrorResponse,
       { status: 500 }
     );
   }
 }
 
-// Get training job status
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const trainingId = searchParams.get('id');
+/**
+ * ================================================================
+ * REJECT OTHER HTTP METHODS
+ * ================================================================
+ */
 
-  if (!trainingId) {
-    return NextResponse.json(
-      {
-        error: 'Missing training ID',
-        code: 'MISSING_TRAINING_ID',
-        details: 'Training ID is required as a query parameter'
-      } as ErrorResponse,
-      { status: 400 }
-    );
-  }
-
-  const job = activeTrainingJobs.get(trainingId);
-
-  if (!job) {
-    return NextResponse.json(
-      {
-        error: 'Training job not found',
-        code: 'TRAINING_JOB_NOT_FOUND',
-        details: `No training job found with ID: ${trainingId}`
-      } as ErrorResponse,
-      { status: 404 }
-    );
-  }
-
-  // Simulate progress for running jobs
-  if (job.status === 'running') {
-    const elapsed = Date.now() - job.startTime.getTime();
-    const estimated = job.estimatedEndTime.getTime() - job.startTime.getTime();
-    job.progress = Math.min(95, Math.round((elapsed / estimated) * 100));
-  }
-
-  return NextResponse.json({
-    trainingId: job.id,
-    status: job.status,
-    progress: job.progress,
-    startTime: job.startTime.toISOString(),
-    estimatedEndTime: job.estimatedEndTime.toISOString(),
-    config: job.config
-  });
+export async function GET() {
+  return NextResponse.json(
+    {
+      error: 'Method not allowed',
+      code: 'METHOD_NOT_ALLOWED',
+      details: 'This endpoint only supports POST requests for initiating training jobs',
+      timestamp: new Date().toISOString(),
+    } as ErrorResponse,
+    {
+      status: 405,
+      headers: {
+        Allow: 'POST',
+      },
+    }
+  );
 }
 
-// Handle unsupported methods
 export async function PUT() {
   return NextResponse.json(
     {
       error: 'Method not allowed',
       code: 'METHOD_NOT_ALLOWED',
-      details: 'This endpoint supports POST (create training job) and GET (check status) requests'
+      details: 'This endpoint only supports POST requests for initiating training jobs',
+      timestamp: new Date().toISOString(),
     } as ErrorResponse,
-    { status: 405 }
+    {
+      status: 405,
+      headers: {
+        Allow: 'POST',
+      },
+    }
   );
 }
 
@@ -396,8 +640,31 @@ export async function DELETE() {
     {
       error: 'Method not allowed',
       code: 'METHOD_NOT_ALLOWED',
-      details: 'This endpoint supports POST (create training job) and GET (check status) requests'
+      details: 'This endpoint only supports POST requests for initiating training jobs',
+      timestamp: new Date().toISOString(),
     } as ErrorResponse,
-    { status: 405 }
+    {
+      status: 405,
+      headers: {
+        Allow: 'POST',
+      },
+    }
+  );
+}
+
+export async function PATCH() {
+  return NextResponse.json(
+    {
+      error: 'Method not allowed',
+      code: 'METHOD_NOT_ALLOWED',
+      details: 'This endpoint only supports POST requests for initiating training jobs',
+      timestamp: new Date().toISOString(),
+    } as ErrorResponse,
+    {
+      status: 405,
+      headers: {
+        Allow: 'POST',
+      },
+    }
   );
 }

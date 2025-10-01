@@ -1,22 +1,105 @@
 // frontend/src/app/api/classifier/metrics/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
-// Types for metrics response
+/**
+ * Server-side cache for model metrics
+ * Key format: `metrics:${model_type}`
+ */
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  expiresAt: number;
+}
+
+class MetricsCache {
+  private cache = new Map<string, CacheEntry<any>>();
+  private defaultTTL = 60 * 60 * 1000; // 1 hour in milliseconds
+
+  set<T>(key: string, data: T, ttl?: number): void {
+    const now = Date.now();
+    this.cache.set(key, {
+      data,
+      timestamp: now,
+      expiresAt: now + (ttl || this.defaultTTL),
+    });
+  }
+
+  get<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+
+    if (!entry) {
+      return null;
+    }
+
+    // Check if expired
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return entry.data as T;
+  }
+
+  has(key: string): boolean {
+    const entry = this.cache.get(key);
+
+    if (!entry) {
+      return false;
+    }
+
+    // Check if expired
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return false;
+    }
+
+    return true;
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  size(): number {
+    // Clean expired entries first
+    const now = Date.now();
+    const keysToDelete: string[] = [];
+
+    this.cache.forEach((entry, key) => {
+      if (now > entry.expiresAt) {
+        keysToDelete.push(key);
+      }
+    });
+
+    keysToDelete.forEach(key => this.cache.delete(key));
+
+    return this.cache.size;
+  }
+}
+
+// Global cache instance
+const metricsCache = new MetricsCache();
+
+/**
+ * Type definitions for classifier metrics
+ */
 interface ModelMetrics {
   accuracy: number;
   precision: number;
   recall: number;
   f1_score: number;
   auc_roc: number;
-  matthews_correlation_coefficient: number;
-  confusion_matrix: {
+  matthews_correlation_coefficient?: number;
+  confusion_matrix?: {
     true_positives: number;
     true_negatives: number;
     false_positives: number;
     false_negatives: number;
   };
-  class_metrics: {
+  class_metrics?: {
     real: {
       precision: number;
       recall: number;
@@ -30,7 +113,7 @@ interface ModelMetrics {
       support: number;
     };
   };
-  model_info: {
+  model_info?: {
     model_version: string;
     model_type: string;
     training_date: string;
@@ -38,7 +121,7 @@ interface ModelMetrics {
     dataset_size: number;
     validation_size: number;
   };
-  performance_history: Array<{
+  performance_history?: Array<{
     date: string;
     accuracy: number;
     f1_score: number;
@@ -48,278 +131,313 @@ interface ModelMetrics {
 
 interface ErrorResponse {
   error: string;
-  code: string;
+  code?: string;
   details?: string;
+  timestamp: string;
 }
 
-// Mock model metrics data
-const getCurrentModelMetrics = (): ModelMetrics => {
-  // Simulate some realistic but randomized metrics
-  const baseAccuracy = 0.94 + (Math.random() - 0.5) * 0.02;
-  const basePrecision = 0.92 + (Math.random() - 0.5) * 0.03;
-  const baseRecall = 0.89 + (Math.random() - 0.5) * 0.03;
-
-  const f1Score = 2 * (basePrecision * baseRecall) / (basePrecision + baseRecall);
-  const aucRoc = 0.96 + (Math.random() - 0.5) * 0.02;
-  const mcc = 0.88 + (Math.random() - 0.5) * 0.03;
-
-  // Generate confusion matrix values
-  const totalSamples = 10000;
-  const truePositives = Math.round(totalSamples * 0.45 * baseRecall);
-  const falseNegatives = Math.round(totalSamples * 0.45) - truePositives;
-  const trueNegatives = Math.round(totalSamples * 0.55 * (basePrecision * 0.95));
-  const falsePositives = Math.round(totalSamples * 0.55) - trueNegatives;
-
-  return {
-    accuracy: Math.round(baseAccuracy * 1000) / 1000,
-    precision: Math.round(basePrecision * 1000) / 1000,
-    recall: Math.round(baseRecall * 1000) / 1000,
-    f1_score: Math.round(f1Score * 1000) / 1000,
-    auc_roc: Math.round(aucRoc * 1000) / 1000,
-    matthews_correlation_coefficient: Math.round(mcc * 1000) / 1000,
-
-    confusion_matrix: {
-      true_positives: truePositives,
-      true_negatives: trueNegatives,
-      false_positives: falsePositives,
-      false_negatives: falseNegatives
-    },
-
-    class_metrics: {
-      real: {
-        precision: Math.round((trueNegatives / (trueNegatives + falseNegatives)) * 1000) / 1000,
-        recall: Math.round((trueNegatives / (trueNegatives + falsePositives)) * 1000) / 1000,
-        f1_score: Math.round(((2 * trueNegatives) / (2 * trueNegatives + falsePositives + falseNegatives)) * 1000) / 1000,
-        support: trueNegatives + falsePositives
-      },
-      fake: {
-        precision: Math.round((truePositives / (truePositives + falsePositives)) * 1000) / 1000,
-        recall: Math.round((truePositives / (truePositives + falseNegatives)) * 1000) / 1000,
-        f1_score: Math.round(((2 * truePositives) / (2 * truePositives + falsePositives + falseNegatives)) * 1000) / 1000,
-        support: truePositives + falseNegatives
-      }
-    },
-
-    model_info: {
-      model_version: 'bert-large-v2.1',
-      model_type: 'BERT Large (Fine-tuned)',
-      training_date: '2024-09-25T10:30:00Z',
-      last_updated: new Date().toISOString(),
-      dataset_size: 75000,
-      validation_size: 15000
-    },
-
-    performance_history: [
-      {
-        date: '2024-09-20T00:00:00Z',
-        accuracy: 0.912,
-        f1_score: 0.895,
-        dataset_version: 'v1.0'
-      },
-      {
-        date: '2024-09-22T00:00:00Z',
-        accuracy: 0.923,
-        f1_score: 0.908,
-        dataset_version: 'v1.1'
-      },
-      {
-        date: '2024-09-24T00:00:00Z',
-        accuracy: 0.935,
-        f1_score: 0.921,
-        dataset_version: 'v1.2'
-      },
-      {
-        date: '2024-09-25T00:00:00Z',
-        accuracy: Math.round(baseAccuracy * 1000) / 1000,
-        f1_score: Math.round(f1Score * 1000) / 1000,
-        dataset_version: 'v2.0'
-      }
-    ]
-  };
-};
-
+/**
+ * GET /api/classifier/metrics
+ *
+ * Backend-for-Frontend (BFF) proxy for classifier metrics
+ *
+ * Features:
+ * - Authentication via NextAuth.js session
+ * - JWT token forwarding to Python backend
+ * - Server-side caching with configurable TTL
+ * - Robust error handling
+ * - Query parameter support for model filtering
+ *
+ * Query Parameters:
+ * - model_type: Filter by model type (e.g., 'ensemble', 'bert', 'random_forest')
+ * - include_history: Include performance history (default: true)
+ * - include_confusion_matrix: Include confusion matrix (default: true)
+ */
 export async function GET(request: NextRequest) {
   try {
-    // Optional query parameters for filtering metrics
+    // ================================================================
+    // 1. Authentication Check
+    // ================================================================
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user) {
+      return NextResponse.json(
+        {
+          error: 'Unauthorized',
+          code: 'AUTHENTICATION_REQUIRED',
+          details: 'You must be authenticated to access this resource',
+          timestamp: new Date().toISOString(),
+        } as ErrorResponse,
+        { status: 401 }
+      );
+    }
+
+    // ================================================================
+    // 2. Extract and Validate Query Parameters
+    // ================================================================
     const { searchParams } = new URL(request.url);
+    const modelType = searchParams.get('model_type') || 'ensemble';
     const includeHistory = searchParams.get('include_history') !== 'false';
     const includeConfusionMatrix = searchParams.get('include_confusion_matrix') !== 'false';
-    const modelVersion = searchParams.get('model_version');
 
-    // Simulate some processing delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Get current model metrics
-    let metrics = getCurrentModelMetrics();
-
-    // Filter by model version if specified
-    if (modelVersion && modelVersion !== metrics.model_info.model_version) {
-      return NextResponse.json(
-        {
-          error: 'Model version not found',
-          code: 'MODEL_VERSION_NOT_FOUND',
-          details: `No metrics available for model version: ${modelVersion}`
-        } as ErrorResponse,
-        { status: 404 }
-      );
-    }
-
-    // Apply filtering based on query parameters
-    if (!includeHistory) {
-      delete (metrics as any).performance_history;
-    }
-
-    if (!includeConfusionMatrix) {
-      delete (metrics as any).confusion_matrix;
-    }
-
-    // Add response metadata
-    const response = {
-      ...metrics,
-      metadata: {
-        retrieved_at: new Date().toISOString(),
-        cache_ttl_seconds: 300, // 5 minutes
-        api_version: '1.0'
-      }
-    };
-
-    // Log metrics retrieval
-    console.log(`[CLASSIFIER] Metrics retrieved for model ${metrics.model_info.model_version}`);
-
-    return NextResponse.json(response, {
-      status: 200,
-      headers: {
-        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
-        'Content-Type': 'application/json'
-      }
-    });
-
-  } catch (error) {
-    console.error('[CLASSIFIER] Metrics retrieval error:', error);
-
-    return NextResponse.json(
-      {
-        error: 'Internal server error during metrics retrieval',
-        code: 'METRICS_RETRIEVAL_FAILED',
-        details: 'An unexpected error occurred while retrieving model metrics'
-      } as ErrorResponse,
-      { status: 500 }
-    );
-  }
-}
-
-// Handle model metrics comparison
-export async function POST(request: NextRequest) {
-  try {
-    let body: { modelVersions: string[] };
-
-    try {
-      body = await request.json();
-    } catch (error) {
-      return NextResponse.json(
-        {
-          error: 'Invalid JSON in request body',
-          code: 'INVALID_JSON',
-          details: 'Request body must be valid JSON'
-        } as ErrorResponse,
-        { status: 400 }
-      );
-    }
-
-    if (!body.modelVersions || !Array.isArray(body.modelVersions)) {
-      return NextResponse.json(
-        {
-          error: 'Invalid request body',
-          code: 'INVALID_MODEL_VERSIONS',
-          details: 'modelVersions must be an array of model version strings'
-        } as ErrorResponse,
-        { status: 400 }
-      );
-    }
-
-    if (body.modelVersions.length > 5) {
-      return NextResponse.json(
-        {
-          error: 'Too many models requested',
-          code: 'TOO_MANY_MODELS',
-          details: 'Cannot compare more than 5 models at once'
-        } as ErrorResponse,
-        { status: 400 }
-      );
-    }
-
-    // Mock comparison data
-    const availableModels = [
-      'bert-large-v2.1',
-      'bert-large-v2.0',
-      'roberta-large-v1.3',
-      'distilbert-v1.1'
+    // Validate model_type parameter
+    const validModelTypes = [
+      'ensemble',
+      'random_forest',
+      'gradient_boosting',
+      'svm',
+      'naive_bayes',
+      'logistic_regression',
+      'bert',
+      'lstm',
     ];
 
-    const invalidModels = body.modelVersions.filter(v => !availableModels.includes(v));
-    if (invalidModels.length > 0) {
+    if (!validModelTypes.includes(modelType)) {
       return NextResponse.json(
         {
-          error: 'Invalid model versions',
-          code: 'INVALID_MODEL_VERSIONS',
-          details: `The following model versions are not available: ${invalidModels.join(', ')}`
+          error: 'Invalid model type',
+          code: 'INVALID_MODEL_TYPE',
+          details: `Model type must be one of: ${validModelTypes.join(', ')}`,
+          timestamp: new Date().toISOString(),
         } as ErrorResponse,
-        { status: 404 }
+        { status: 400 }
       );
     }
 
-    // Generate comparison metrics
-    const comparison = body.modelVersions.map(version => {
-      const baseMetrics = getCurrentModelMetrics();
+    // ================================================================
+    // 3. Check Cache
+    // ================================================================
+    const cacheKey = `metrics:${modelType}:${includeHistory}:${includeConfusionMatrix}`;
+    const cachedData = metricsCache.get<ModelMetrics>(cacheKey);
 
-      // Adjust metrics slightly for different versions
-      const versionMultiplier = version.includes('v2.1') ? 1.0 :
-                               version.includes('v2.0') ? 0.98 :
-                               version.includes('v1.3') ? 0.95 : 0.92;
+    if (cachedData) {
+      console.log(`[METRICS] Cache HIT for ${cacheKey}`);
 
-      return {
-        model_version: version,
-        accuracy: Math.round(baseMetrics.accuracy * versionMultiplier * 1000) / 1000,
-        precision: Math.round(baseMetrics.precision * versionMultiplier * 1000) / 1000,
-        recall: Math.round(baseMetrics.recall * versionMultiplier * 1000) / 1000,
-        f1_score: Math.round(baseMetrics.f1_score * versionMultiplier * 1000) / 1000,
-        auc_roc: Math.round(baseMetrics.auc_roc * versionMultiplier * 1000) / 1000,
-        training_date: baseMetrics.model_info.training_date,
-        dataset_size: baseMetrics.model_info.dataset_size
-      };
+      return NextResponse.json(
+        {
+          ...cachedData,
+          metadata: {
+            source: 'cache',
+            cached_at: new Date().toISOString(),
+            cache_key: cacheKey,
+          },
+        },
+        {
+          status: 200,
+          headers: {
+            'X-Cache-Status': 'HIT',
+            'Cache-Control': 'private, max-age=3600',
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
+    console.log(`[METRICS] Cache MISS for ${cacheKey}`);
+
+    // ================================================================
+    // 4. Fetch from Python Backend
+    // ================================================================
+    const backendApiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL;
+
+    if (!backendApiUrl) {
+      console.error('[METRICS] Backend API URL not configured');
+      return NextResponse.json(
+        {
+          error: 'Backend configuration error',
+          code: 'BACKEND_URL_MISSING',
+          details: 'Backend API URL is not configured',
+          timestamp: new Date().toISOString(),
+        } as ErrorResponse,
+        { status: 500 }
+      );
+    }
+
+    // Construct backend URL with query parameters
+    const backendUrl = new URL(`${backendApiUrl}/api/v1/classifier/metrics`);
+    backendUrl.searchParams.set('model_type', modelType);
+    if (!includeHistory) backendUrl.searchParams.set('include_history', 'false');
+    if (!includeConfusionMatrix) backendUrl.searchParams.set('include_confusion_matrix', 'false');
+
+    // Get JWT token from session (if available)
+    const token = session.user.id; // In production, use actual JWT token
+
+    console.log(`[METRICS] Fetching from backend: ${backendUrl.toString()}`);
+
+    // Make request to Python backend
+    const backendResponse = await fetch(backendUrl.toString(), {
+      method: 'GET',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json',
+        'User-Agent': 'NextJS-BFF/1.0',
+        'X-Request-ID': crypto.randomUUID(),
+      },
+      // Timeout after 30 seconds
+      signal: AbortSignal.timeout(30000),
     });
 
-    return NextResponse.json({
-      comparison,
-      metadata: {
-        compared_at: new Date().toISOString(),
-        models_count: comparison.length
+    // ================================================================
+    // 5. Handle Backend Errors
+    // ================================================================
+    if (!backendResponse.ok) {
+      const errorBody = await backendResponse.json().catch(() => ({
+        error: 'Unknown backend error',
+      }));
+
+      console.error(
+        `[METRICS] Backend error: ${backendResponse.status} ${backendResponse.statusText}`,
+        errorBody
+      );
+
+      // Map backend status codes to appropriate client responses
+      if (backendResponse.status === 404) {
+        return NextResponse.json(
+          {
+            error: 'Model not found',
+            code: 'MODEL_NOT_FOUND',
+            details: errorBody.error || `No metrics found for model type: ${modelType}`,
+            timestamp: new Date().toISOString(),
+          } as ErrorResponse,
+          { status: 404 }
+        );
       }
-    });
 
-  } catch (error) {
-    console.error('[CLASSIFIER] Metrics comparison error:', error);
+      if (backendResponse.status === 401 || backendResponse.status === 403) {
+        return NextResponse.json(
+          {
+            error: 'Backend authentication failed',
+            code: 'BACKEND_AUTH_FAILED',
+            details: 'Failed to authenticate with backend service',
+            timestamp: new Date().toISOString(),
+          } as ErrorResponse,
+          { status: 502 }
+        );
+      }
 
+      // Default to 502 Bad Gateway for other backend errors
+      return NextResponse.json(
+        {
+          error: 'Backend service error',
+          code: 'BACKEND_ERROR',
+          details: errorBody.error || 'The backend service encountered an error',
+          timestamp: new Date().toISOString(),
+        } as ErrorResponse,
+        { status: 502 }
+      );
+    }
+
+    // ================================================================
+    // 6. Parse and Cache Response
+    // ================================================================
+    const metricsData: ModelMetrics = await backendResponse.json();
+
+    // Cache the successful response (1 hour TTL)
+    metricsCache.set(cacheKey, metricsData, 60 * 60 * 1000);
+
+    console.log(`[METRICS] Successfully fetched and cached metrics for ${modelType}`);
+
+    // ================================================================
+    // 7. Return Successful Response
+    // ================================================================
     return NextResponse.json(
       {
-        error: 'Internal server error during metrics comparison',
-        code: 'METRICS_COMPARISON_FAILED',
-        details: 'An unexpected error occurred while comparing model metrics'
+        ...metricsData,
+        metadata: {
+          source: 'backend',
+          retrieved_at: new Date().toISOString(),
+          cache_ttl_seconds: 3600,
+          model_type: modelType,
+        },
+      },
+      {
+        status: 200,
+        headers: {
+          'X-Cache-Status': 'MISS',
+          'Cache-Control': 'private, max-age=3600',
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+  } catch (error) {
+    // ================================================================
+    // 8. Handle Unexpected Errors
+    // ================================================================
+    console.error('[METRICS] Unexpected error:', error);
+
+    // Handle timeout errors
+    if (error instanceof Error && error.name === 'AbortError') {
+      return NextResponse.json(
+        {
+          error: 'Backend request timeout',
+          code: 'REQUEST_TIMEOUT',
+          details: 'The backend service did not respond in time',
+          timestamp: new Date().toISOString(),
+        } as ErrorResponse,
+        { status: 504 }
+      );
+    }
+
+    // Handle network errors
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      return NextResponse.json(
+        {
+          error: 'Backend connection failed',
+          code: 'CONNECTION_FAILED',
+          details: 'Unable to connect to the backend service',
+          timestamp: new Date().toISOString(),
+        } as ErrorResponse,
+        { status: 503 }
+      );
+    }
+
+    // Generic error response
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        code: 'INTERNAL_SERVER_ERROR',
+        details: 'An unexpected error occurred while retrieving metrics',
+        timestamp: new Date().toISOString(),
       } as ErrorResponse,
       { status: 500 }
     );
   }
 }
 
-// Handle unsupported methods
+/**
+ * Reject all other HTTP methods
+ */
+export async function POST() {
+  return NextResponse.json(
+    {
+      error: 'Method not allowed',
+      code: 'METHOD_NOT_ALLOWED',
+      details: 'This endpoint only supports GET requests',
+      timestamp: new Date().toISOString(),
+    } as ErrorResponse,
+    {
+      status: 405,
+      headers: {
+        Allow: 'GET',
+      },
+    }
+  );
+}
+
 export async function PUT() {
   return NextResponse.json(
     {
       error: 'Method not allowed',
       code: 'METHOD_NOT_ALLOWED',
-      details: 'This endpoint supports GET (retrieve metrics) and POST (compare models) requests'
+      details: 'This endpoint only supports GET requests',
+      timestamp: new Date().toISOString(),
     } as ErrorResponse,
-    { status: 405 }
+    {
+      status: 405,
+      headers: {
+        Allow: 'GET',
+      },
+    }
   );
 }
 
@@ -328,8 +446,31 @@ export async function DELETE() {
     {
       error: 'Method not allowed',
       code: 'METHOD_NOT_ALLOWED',
-      details: 'This endpoint supports GET (retrieve metrics) and POST (compare models) requests'
+      details: 'This endpoint only supports GET requests',
+      timestamp: new Date().toISOString(),
     } as ErrorResponse,
-    { status: 405 }
+    {
+      status: 405,
+      headers: {
+        Allow: 'GET',
+      },
+    }
+  );
+}
+
+export async function PATCH() {
+  return NextResponse.json(
+    {
+      error: 'Method not allowed',
+      code: 'METHOD_NOT_ALLOWED',
+      details: 'This endpoint only supports GET requests',
+      timestamp: new Date().toISOString(),
+    } as ErrorResponse,
+    {
+      status: 405,
+      headers: {
+        Allow: 'GET',
+      },
+    }
   );
 }

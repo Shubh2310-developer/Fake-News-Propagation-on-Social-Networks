@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "@emotion/is-prop-valid": "^1.4.0",
+    "@types/react-katex": "^3.0.4",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "clsx": "^2.1.1",
+    "react-countup": "^6.5.3",
+    "react-katex": "^3.1.0",
+    "react-syntax-highlighter": "^15.6.6"
+  }
+}

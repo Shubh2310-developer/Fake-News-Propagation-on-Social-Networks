@@ -1,8 +1,15 @@
 // /home/ghost/fake-news-game-theory/frontend/src/app/layout.tsx
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f172a' },
+  ],
+};
 
 // Metadata configuration
 export const metadata: Metadata = {
@@ -71,13 +78,6 @@ export const metadata: Metadata = {
     },
   },
 
-  // Mobile browser theme color
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0f172a' },
-  ],
-
-  // Manifest for PWA (optional)
   manifest: '/icons/manifest.json',
 };
 
@@ -94,7 +94,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </head>
-      <body className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased font-sans" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <body className="min-h-screen bg-white text-gray-900 antialiased font-sans" style={{ fontFamily: 'Inter, sans-serif' }}>
         {/* Skip to main content link for accessibility */}
         <a
           href="#main-content"

@@ -223,7 +223,7 @@ const validateParameters = (params: Partial<SimulationParameters>): string[] => 
 
   validationRules.forEach(rule => {
     const value = params[rule.field as keyof SimulationParameters];
-    if (value !== undefined && (value < rule.min || value > rule.max)) {
+    if (typeof value === 'number' && (value < rule.min || value > rule.max)) {
       errors.push(`${rule.field} must be between ${rule.min} and ${rule.max}`);
     }
   });

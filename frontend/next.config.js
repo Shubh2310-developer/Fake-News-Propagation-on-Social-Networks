@@ -2,19 +2,25 @@
 const nextConfig = {
   // Enable experimental features
   experimental: {
-    serverActions: true,
+    
     serverComponentsExternalPackages: ['d3'],
   },
 
   // Image optimization configuration
   images: {
-    domains: [
-      'localhost',
-      'api.example.com',
-      '127.0.0.1',
-      // Add your backend API domain here when deployed
-    ],
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.example.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '127.0.0.1',
+      },
       {
         protocol: 'http',
         hostname: 'localhost',

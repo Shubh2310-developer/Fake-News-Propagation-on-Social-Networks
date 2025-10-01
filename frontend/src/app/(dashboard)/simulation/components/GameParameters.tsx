@@ -71,7 +71,7 @@ interface GameParametersProps {
 // Default parameter values
 const DEFAULT_PARAMETERS: GameParameters = {
   // Network Configuration
-  networkSize: 1000,
+  networkSize: 100,
   networkType: 'scale-free',
   averageDegree: 6,
   clusteringCoefficient: 0.3,
@@ -116,18 +116,18 @@ const FormSection: React.FC<{
   children: React.ReactNode;
   icon?: React.ReactNode;
 }> = ({ title, description, children, icon }) => (
-  <Card className="mb-6">
-    <CardHeader>
-      <CardTitle className="text-lg flex items-center gap-2">
+  <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+    <div className="mb-4">
+      <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
         {icon}
         {title}
-      </CardTitle>
-      {description && <CardDescription>{description}</CardDescription>}
-    </CardHeader>
-    <CardContent className="space-y-6">
+      </h3>
+      {description && <p className="text-sm text-gray-600 mt-1">{description}</p>}
+    </div>
+    <div className="space-y-4">
       {children}
-    </CardContent>
-  </Card>
+    </div>
+  </div>
 );
 
 // Form field component with tooltip support
@@ -141,11 +141,11 @@ const FormField: React.FC<{
   label,
   tooltip,
   children,
-  className = "grid grid-cols-1 md:grid-cols-2 items-center gap-4",
+  className = "grid grid-cols-1 gap-3 mb-5",
   required = false
 }) => (
   <div className={className}>
-    <Label className="flex items-center text-sm font-medium">
+    <Label className="flex items-center text-sm font-bold text-gray-900">
       {label}
       {required && <span className="text-red-500 ml-1">*</span>}
       {tooltip && (
@@ -189,7 +189,7 @@ const SliderField: React.FC<{
           step={step}
           className="w-full"
         />
-        <div className="text-sm text-slate-500 text-right">
+        <div className="text-sm text-gray-700 font-medium text-right">
           {formatValue(value)}
         </div>
       </div>
@@ -246,24 +246,14 @@ export const GameParameters: React.FC<GameParametersProps> = ({
   return (
     <div className={className}>
       <form onSubmit={handleSubmit} className="w-full max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-50 mb-2">
-            Game Theory Simulation Parameters
-          </h2>
-          <p className="text-slate-600 dark:text-slate-400">
-            Configure network structure, agent behaviors, and game dynamics for your simulation.
-          </p>
-        </div>
-
         {/* Parameter Validation Alert */}
         {!isValid && (
-          <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <div className="flex items-center gap-2 text-red-800 dark:text-red-200">
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center gap-2 text-red-800">
               <Info className="w-4 h-4" />
               <span className="font-medium">Parameter Validation Error</span>
             </div>
-            <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+            <p className="text-sm text-red-700 mt-1">
               Agent ratios must sum to 1.0. Current total: {(parameters.spreaderRatio + parameters.moderatorRatio + parameters.userRatio + parameters.botRatio).toFixed(3)}
             </p>
           </div>
@@ -291,9 +281,9 @@ export const GameParameters: React.FC<GameParametersProps> = ({
                 <Input
                   type="number"
                   min={10}
-                  max={10000}
+                  max={150}
                   value={parameters.networkSize}
-                  onChange={(e) => updateParameter('networkSize', parseInt(e.target.value))}
+                  onChange={(e) => updateParameter('networkSize', Math.min(150, parseInt(e.target.value)))}
                 />
               </FormField>
 
@@ -397,24 +387,24 @@ export const GameParameters: React.FC<GameParametersProps> = ({
 
               <Separator />
 
-              <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                <h4 className="font-medium mb-3">Population Summary</h4>
+              <div className="p-4 bg-white rounded-lg border border-gray-200">
+                <h4 className="font-medium mb-3 text-gray-900">Population Summary</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div className="text-center">
                     <Badge variant="destructive" className="mb-1">Spreaders</Badge>
-                    <div className="font-mono">{(parameters.spreaderRatio * parameters.networkSize).toFixed(0)}</div>
+                    <div className="font-mono text-gray-900">{(parameters.spreaderRatio * parameters.networkSize).toFixed(0)}</div>
                   </div>
                   <div className="text-center">
                     <Badge variant="default" className="mb-1">Moderators</Badge>
-                    <div className="font-mono">{(parameters.moderatorRatio * parameters.networkSize).toFixed(0)}</div>
+                    <div className="font-mono text-gray-900">{(parameters.moderatorRatio * parameters.networkSize).toFixed(0)}</div>
                   </div>
                   <div className="text-center">
                     <Badge variant="secondary" className="mb-1">Users</Badge>
-                    <div className="font-mono">{(parameters.userRatio * parameters.networkSize).toFixed(0)}</div>
+                    <div className="font-mono text-gray-900">{(parameters.userRatio * parameters.networkSize).toFixed(0)}</div>
                   </div>
                   <div className="text-center">
                     <Badge variant="outline" className="mb-1">Bots</Badge>
-                    <div className="font-mono">{(parameters.botRatio * parameters.networkSize).toFixed(0)}</div>
+                    <div className="font-mono text-gray-900">{(parameters.botRatio * parameters.networkSize).toFixed(0)}</div>
                   </div>
                 </div>
               </div>
@@ -479,7 +469,7 @@ export const GameParameters: React.FC<GameParametersProps> = ({
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <h4 className="font-medium">Rewards</h4>
+                  <h4 className="font-medium text-gray-900">Rewards</h4>
 
                   <FormField
                     label="Spreader Reward"
@@ -507,7 +497,7 @@ export const GameParameters: React.FC<GameParametersProps> = ({
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="font-medium">Penalties</h4>
+                  <h4 className="font-medium text-gray-900">Penalties</h4>
 
                   <FormField
                     label="Detection Penalty"
@@ -538,7 +528,7 @@ export const GameParameters: React.FC<GameParametersProps> = ({
               <Separator />
 
               <div className="space-y-4">
-                <h4 className="font-medium">Learning Dynamics</h4>
+                <h4 className="font-medium text-gray-900">Learning Dynamics</h4>
 
                 <SliderField
                   label="Learning Rate"
@@ -638,7 +628,7 @@ export const GameParameters: React.FC<GameParametersProps> = ({
               <Separator />
 
               <div className="space-y-4">
-                <h4 className="font-medium">Fine-tuning Parameters</h4>
+                <h4 className="font-medium text-gray-900">Fine-tuning Parameters</h4>
 
                 <SliderField
                   label="Noise Level"
@@ -690,14 +680,14 @@ export const GameParameters: React.FC<GameParametersProps> = ({
         </Tabs>
 
         {/* Action Buttons */}
-        <div className="flex justify-between items-center pt-6 border-t">
-          <div className="flex gap-3">
+        <div className="pt-6 border-t">
+          <div className="grid grid-cols-2 gap-3">
             <Button
               type="button"
               variant="outline"
               onClick={handleReset}
               disabled={isLoading}
-              className="flex items-center gap-2"
+              className="flex items-center justify-center gap-2"
             >
               <RotateCcw className="w-4 h-4" />
               Reset to Defaults
@@ -708,7 +698,7 @@ export const GameParameters: React.FC<GameParametersProps> = ({
               variant="outline"
               onClick={handleSave}
               disabled={isLoading || !isValid}
-              className="flex items-center gap-2"
+              className="flex items-center justify-center gap-2"
             >
               <Save className="w-4 h-4" />
               Save Preset
@@ -719,22 +709,21 @@ export const GameParameters: React.FC<GameParametersProps> = ({
               variant="outline"
               onClick={onLoad}
               disabled={isLoading}
-              className="flex items-center gap-2"
+              className="flex items-center justify-center gap-2"
             >
               <Upload className="w-4 h-4" />
               Load Preset
             </Button>
-          </div>
 
-          <Button
-            type="submit"
-            size="lg"
-            disabled={isLoading || !isValid}
-            className="min-w-[160px] flex items-center gap-2"
-          >
-            <Play className="w-4 h-4" />
-            {isLoading ? 'Starting...' : 'Run Simulation'}
-          </Button>
+            <Button
+              type="submit"
+              disabled={isLoading || !isValid}
+              className="flex items-center justify-center gap-2"
+            >
+              <Play className="w-4 h-4" />
+              {isLoading ? 'Starting...' : 'Run Simulation'}
+            </Button>
+          </div>
         </div>
       </form>
     </div>

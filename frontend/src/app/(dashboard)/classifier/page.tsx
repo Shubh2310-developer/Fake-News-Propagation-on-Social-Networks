@@ -158,17 +158,17 @@ export default function ClassifierPage() {
   const getVerdictStyle = (prediction?: 'fake' | 'real') => {
     if (prediction === 'real') {
       return {
-        textColor: 'text-green-700 dark:text-green-400',
-        bgColor: 'bg-green-50 dark:bg-green-900/20',
-        borderColor: 'border-green-200 dark:border-green-800',
+        textColor: 'text-green-700',
+        bgColor: 'bg-green-50',
+        borderColor: 'border-green-200',
         icon: <CheckCircle2 className="h-8 w-8 text-green-600" />,
         label: 'Likely Real News',
       };
     }
     return {
-      textColor: 'text-red-700 dark:text-red-400',
-      bgColor: 'bg-red-50 dark:bg-red-900/20',
-      borderColor: 'border-red-200 dark:border-red-800',
+      textColor: 'text-red-700',
+      bgColor: 'bg-red-50',
+      borderColor: 'border-red-200',
       icon: <XCircle className="h-8 w-8 text-red-600" />,
       label: 'Likely Fake News',
     };
@@ -207,14 +207,14 @@ export default function ClassifierPage() {
         transition={{ duration: 0.5 }}
       >
         <div className="flex items-center gap-3 mb-3">
-          <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+          <div className="p-3 bg-blue-100 rounded-lg">
             <Sparkles className="h-6 w-6 text-blue-600" />
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
             Real-Time News Classifier
           </h1>
         </div>
-        <p className="text-gray-600 dark:text-gray-400 text-lg">
+        <p className="text-gray-600 text-lg">
           Analyze news articles, posts, or other text to detect potential misinformation
         </p>
       </motion.div>
@@ -239,7 +239,7 @@ export default function ClassifierPage() {
             {/* Input Section */}
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
                   Text to Analyze
                 </label>
                 <Textarea
@@ -265,7 +265,7 @@ Example: Breaking news: Scientists have made a groundbreaking discovery that cou
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
                     Classification Model
                   </label>
                   <Select
@@ -367,7 +367,7 @@ Example: Breaking news: Scientists have made a groundbreaking discovery that cou
                           <div className="flex flex-col items-center gap-4">
                             {verdictStyle.icon}
                             <div>
-                              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                              <p className="text-sm font-medium text-gray-600 mb-1">
                                 Classification Result
                               </p>
                               <h3 className={cn("text-3xl font-bold", verdictStyle.textColor)}>
@@ -380,7 +380,7 @@ Example: Breaking news: Scientists have made a groundbreaking discovery that cou
                         <div className="space-y-4">
                           <div>
                             <div className="flex items-center justify-between mb-3">
-                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              <span className="text-sm font-medium text-gray-700">
                                 Confidence Score
                               </span>
                               <Badge variant="outline" className="text-base font-semibold">
@@ -407,23 +407,23 @@ Example: Breaking news: Scientists have made a groundbreaking discovery that cou
                             </p>
                           </div>
 
-                          <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg space-y-2">
+                          <div className="p-4 bg-gray-50 rounded-lg space-y-2">
                             <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Model Used:</span>
-                              <span className="font-medium text-gray-900 dark:text-gray-100">
+                              <span className="text-gray-600">Model Used:</span>
+                              <span className="font-medium text-gray-900">
                                 {classificationResult.model_used}
                               </span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Processing Time:</span>
-                              <span className="font-medium text-gray-900 dark:text-gray-100">
+                              <span className="text-gray-600">Processing Time:</span>
+                              <span className="font-medium text-gray-900">
                                 {classificationResult.processing_time}ms
                               </span>
                             </div>
                             {classificationResult.metadata && (
                               <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-600 dark:text-gray-400">Text Length:</span>
-                                <span className="font-medium text-gray-900 dark:text-gray-100">
+                                <span className="text-gray-600">Text Length:</span>
+                                <span className="font-medium text-gray-900">
                                   {classificationResult.metadata.text_length} characters
                                 </span>
                               </div>
@@ -440,10 +440,10 @@ Example: Breaking news: Scientists have made a groundbreaking discovery that cou
                           transition={{ duration: 0.4, delay: 0.1 }}
                         >
                           <div className="mb-6">
-                            <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                            <h4 className="text-lg font-semibold text-gray-900 mb-2">
                               Raw Classification Probabilities
                             </h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                            <p className="text-sm text-gray-600">
                               Detailed probability distribution across classification labels
                             </p>
                           </div>
@@ -459,15 +459,15 @@ Example: Breaking news: Scientists have made a groundbreaking discovery that cou
                               initial={{ opacity: 0, scale: 0.9 }}
                               animate={{ opacity: 1, scale: 1 }}
                               transition={{ duration: 0.3, delay: 0.2 }}
-                              className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800"
+                              className="p-4 bg-green-50 rounded-lg border border-green-200"
                             >
                               <div className="flex items-center gap-2 mb-2">
                                 <CheckCircle2 className="h-5 w-5 text-green-600" />
-                                <span className="font-medium text-gray-900 dark:text-gray-100">
+                                <span className="font-medium text-gray-900">
                                   Real News
                                 </span>
                               </div>
-                              <div className="text-3xl font-bold text-green-700 dark:text-green-400">
+                              <div className="text-3xl font-bold text-green-700">
                                 {(classificationResult.probabilities.real * 100).toFixed(1)}%
                               </div>
                             </motion.div>
@@ -476,15 +476,15 @@ Example: Breaking news: Scientists have made a groundbreaking discovery that cou
                               initial={{ opacity: 0, scale: 0.9 }}
                               animate={{ opacity: 1, scale: 1 }}
                               transition={{ duration: 0.3, delay: 0.3 }}
-                              className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800"
+                              className="p-4 bg-red-50 rounded-lg border border-red-200"
                             >
                               <div className="flex items-center gap-2 mb-2">
                                 <XCircle className="h-5 w-5 text-red-600" />
-                                <span className="font-medium text-gray-900 dark:text-gray-100">
+                                <span className="font-medium text-gray-900">
                                   Fake News
                                 </span>
                               </div>
-                              <div className="text-3xl font-bold text-red-700 dark:text-red-400">
+                              <div className="text-3xl font-bold text-red-700">
                                 {(classificationResult.probabilities.fake * 100).toFixed(1)}%
                               </div>
                             </motion.div>
@@ -500,10 +500,10 @@ Example: Breaking news: Scientists have made a groundbreaking discovery that cou
                           transition={{ duration: 0.4, delay: 0.1 }}
                         >
                           <div className="mb-6">
-                            <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                            <h4 className="text-lg font-semibold text-gray-900 mb-2">
                               Model Explanation
                             </h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                            <p className="text-sm text-gray-600">
                               Understanding which features influenced this prediction
                             </p>
                           </div>
@@ -514,7 +514,7 @@ Example: Breaking news: Scientists have made a groundbreaking discovery that cou
                               {classificationResult.explanation.top_phrases &&
                                 classificationResult.explanation.top_phrases.length > 0 && (
                                   <div>
-                                    <h5 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                                    <h5 className="text-sm font-semibold text-gray-900 mb-3">
                                       Key Influential Phrases
                                     </h5>
                                     <div className="space-y-2">
@@ -524,23 +524,23 @@ Example: Breaking news: Scientists have made a groundbreaking discovery that cou
                                           initial={{ opacity: 0, x: -20 }}
                                           animate={{ opacity: 1, x: 0 }}
                                           transition={{ duration: 0.3, delay: 0.2 + idx * 0.05 }}
-                                          className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
+                                          className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
                                         >
                                           <Badge
                                             variant="outline"
                                             className={cn(
                                               "shrink-0",
                                               phrase.type === 'positive'
-                                                ? 'border-green-500 text-green-700 dark:text-green-400'
-                                                : 'border-red-500 text-red-700 dark:text-red-400'
+                                                ? 'border-green-500 text-green-700'
+                                                : 'border-red-500 text-red-700'
                                             )}
                                           >
                                             {phrase.type === 'positive' ? 'Supports Real' : 'Indicates Fake'}
                                           </Badge>
-                                          <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">
+                                          <span className="flex-1 text-sm text-gray-700">
                                             "{phrase.phrase}"
                                           </span>
-                                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                          <span className="text-sm font-semibold text-gray-900">
                                             {(phrase.contribution * 100).toFixed(1)}%
                                           </span>
                                         </motion.div>
@@ -553,7 +553,7 @@ Example: Breaking news: Scientists have made a groundbreaking discovery that cou
                               {classificationResult.explanation.feature_importance &&
                                 classificationResult.explanation.feature_importance.length > 0 && (
                                   <div>
-                                    <h5 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                                    <h5 className="text-sm font-semibold text-gray-900 mb-3">
                                       Feature Importance
                                     </h5>
                                     <div className="space-y-2">
@@ -566,10 +566,10 @@ Example: Breaking news: Scientists have made a groundbreaking discovery that cou
                                           className="space-y-1"
                                         >
                                           <div className="flex items-center justify-between text-sm">
-                                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                                            <span className="font-medium text-gray-700">
                                               {feature.feature}
                                             </span>
-                                            <span className="text-gray-900 dark:text-gray-100 font-semibold">
+                                            <span className="text-gray-900 font-semibold">
                                               {(feature.importance * 100).toFixed(1)}%
                                             </span>
                                           </div>
@@ -635,7 +635,7 @@ Example: Breaking news: Scientists have made a groundbreaking discovery that cou
               How It Works
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-gray-600 dark:text-gray-400">
+          <CardContent className="text-sm text-gray-600">
             Our models analyze linguistic patterns, source credibility indicators, and content
             structure to identify potential misinformation with high accuracy.
           </CardContent>
@@ -648,7 +648,7 @@ Example: Breaking news: Scientists have made a groundbreaking discovery that cou
               Model Performance
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-gray-600 dark:text-gray-400">
+          <CardContent className="text-sm text-gray-600">
             The Ensemble model achieves 88.4% accuracy by combining BERT, LSTM, and traditional
             ML approaches for robust predictions.
           </CardContent>
@@ -661,7 +661,7 @@ Example: Breaking news: Scientists have made a groundbreaking discovery that cou
               Important Note
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-gray-600 dark:text-gray-400">
+          <CardContent className="text-sm text-gray-600">
             While highly accurate, no automated system is perfect. Always verify critical
             information through multiple trusted sources.
           </CardContent>

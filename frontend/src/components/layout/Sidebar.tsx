@@ -6,8 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useUIStore } from '@/store';
 import { cn } from '@/lib/utils';
 import { Navigation } from './Navigation';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export function Sidebar() {
   const { isSidebarOpen, toggleSidebar, isSidebarCollapsed, toggleSidebarCollapse } = useUIStore();
@@ -26,21 +27,38 @@ export function Sidebar() {
         }}
         className={cn(
           "hidden md:flex flex-col border-r border-gray-200 bg-white",
-          "dark:border-gray-800 dark:bg-gray-900",
           "relative overflow-hidden",
           "transition-colors duration-200"
         )}
       >
+        {/* Header Section with Logo */}
+        <div className="h-16 border-b border-gray-200 flex items-center justify-between px-4">
+          {!isSidebarCollapsed ? (
+            <>
+              <Link href="/" className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">GT</span>
+                </div>
+                <h1 className="text-lg font-bold text-gray-900">GTDS Platform</h1>
+              </Link>
+            </>
+          ) : (
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto">
+              <span className="text-white font-bold text-sm">GT</span>
+            </div>
+          )}
+        </div>
+
         {/* Collapse Toggle Button */}
-        <div className="absolute top-4 -right-3 z-10">
+        <div className="absolute top-20 -right-3 z-10">
           <Button
             variant="outline"
             size="icon"
             onClick={toggleSidebarCollapse}
             className={cn(
-              "h-6 w-6 rounded-full bg-white dark:bg-gray-900",
-              "shadow-md border-gray-300 dark:border-gray-700",
-              "hover:bg-gray-100 dark:hover:bg-gray-800"
+              "h-6 w-6 rounded-full bg-white",
+              "shadow-md border-gray-300",
+              "hover:bg-gray-100"
             )}
             aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
@@ -53,7 +71,7 @@ export function Sidebar() {
         </div>
 
         {/* Sidebar Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 pt-6">
           <AnimatePresence mode="wait">
             {!isSidebarCollapsed ? (
               <motion.div
@@ -63,16 +81,6 @@ export function Sidebar() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                {/* Logo/Title */}
-                <div className="mb-6 px-2">
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                    GTDS Platform
-                  </h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Game Theory Dashboard
-                  </p>
-                </div>
-
                 {/* Navigation */}
                 <Navigation isCollapsed={false} />
               </motion.div>
@@ -85,13 +93,6 @@ export function Sidebar() {
                 transition={{ duration: 0.2 }}
                 className="flex flex-col items-center"
               >
-                {/* Collapsed Logo */}
-                <div className="mb-6">
-                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">GT</span>
-                  </div>
-                </div>
-
                 {/* Collapsed Navigation */}
                 <Navigation isCollapsed={true} />
               </motion.div>
@@ -105,9 +106,9 @@ export function Sidebar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="border-t border-gray-200 dark:border-gray-800 p-4"
+            className="border-t border-gray-200 p-4"
           >
-            <div className="text-xs text-gray-500 dark:text-gray-400">
+            <div className="text-xs text-gray-500">
               <p>&copy; 2025 GTDS Project</p>
             </div>
           </motion.div>
@@ -140,16 +141,21 @@ export function Sidebar() {
               }}
               className={cn(
                 "fixed inset-y-0 left-0 z-50 w-64 md:hidden",
-                "bg-white dark:bg-gray-900",
-                "border-r border-gray-200 dark:border-gray-800",
+                "bg-white",
+                "border-r border-gray-200",
                 "shadow-xl overflow-hidden"
               )}
             >
               {/* Mobile Header */}
-              <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 p-4">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                  GTDS Platform
-                </h2>
+              <div className="flex items-center justify-between border-b border-gray-200 p-4 h-16">
+                <Link href="/" className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">GT</span>
+                  </div>
+                  <h2 className="text-lg font-bold text-gray-900">
+                    GTDS Platform
+                  </h2>
+                </Link>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -166,8 +172,8 @@ export function Sidebar() {
               </div>
 
               {/* Mobile Footer */}
-              <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+              <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 p-4 bg-white">
+                <div className="text-xs text-gray-500">
                   <p>&copy; 2025 GTDS Project</p>
                 </div>
               </div>

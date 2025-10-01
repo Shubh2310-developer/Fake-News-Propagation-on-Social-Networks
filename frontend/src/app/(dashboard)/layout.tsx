@@ -45,7 +45,7 @@ const pageVariants = {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
-  const { isSidebarCollapsed, theme } = useUIStore();
+  const { isSidebarCollapsed, theme, toggleSidebar } = useUIStore();
 
   // Apply theme to document
   useEffect(() => {
@@ -58,12 +58,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [theme]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-200">
-      {/* Header - Fixed at top */}
-      <Header />
+    <div className="min-h-screen bg-gray-50 transition-colors duration-200">
+      {/* Mobile Header */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 z-30">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleSidebar}
+            className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <span className="sr-only">Toggle Sidebar</span>
+          </button>
+          <h1 className="text-lg font-bold text-gray-900">GTDS Platform</h1>
+        </div>
+      </div>
 
       {/* Main Layout Container */}
-      <div className="flex h-[calc(100vh-4rem)]">
+      <div className="flex h-screen pt-16 md:pt-0">
         {/* Sidebar - Collapsible */}
         <Sidebar />
 
@@ -79,8 +92,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           }}
           className={cn(
             "flex-1 overflow-y-auto transition-all duration-300",
-            "bg-gradient-to-br from-gray-50 via-white to-gray-100",
-            "dark:from-gray-950 dark:via-gray-900 dark:to-gray-950"
+            "bg-gradient-to-br from-gray-50 via-white to-gray-100"
           )}
         >
           {/* Content Container with max-width and padding */}
@@ -102,9 +114,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <div
                   className={cn(
                     "rounded-xl transition-all duration-200",
-                    "bg-white/70 dark:bg-gray-900/70",
+                    "bg-white/70",
                     "backdrop-blur-sm",
-                    "shadow-sm border border-gray-200/50 dark:border-gray-800/50",
+                    "shadow-sm border border-gray-200/50",
                     "p-6 lg:p-8"
                   )}
                 >
@@ -118,9 +130,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="mt-12 py-6 border-t border-gray-200 dark:border-gray-800"
+              className="mt-12 py-6 border-t border-gray-200"
             >
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-500">
                 <div className="flex items-center gap-2">
                   <span>© 2025 GTDS Project</span>
                   <span className="hidden sm:inline">•</span>
@@ -129,19 +141,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <div className="flex items-center gap-4">
                   <a
                     href="/about"
-                    className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                    className="hover:text-gray-900 transition-colors"
                   >
                     About
                   </a>
                   <a
                     href="/docs"
-                    className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                    className="hover:text-gray-900 transition-colors"
                   >
                     Documentation
                   </a>
                   <a
                     href="/research"
-                    className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                    className="hover:text-gray-900 transition-colors"
                   >
                     Research
                   </a>

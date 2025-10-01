@@ -209,18 +209,18 @@ const MetricsCard: React.FC<MetricsCardProps> = ({
     >
       <Card className="hover:shadow-lg transition-shadow duration-200">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <CardTitle className="text-sm font-medium text-gray-700">
             {title}
           </CardTitle>
-          <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+          <div className="p-2 bg-blue-100 rounded-lg">
             {icon}
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-gray-900 dark:text-gray-50">
+          <div className="text-3xl font-bold text-gray-900">
             {displayValue}
           </div>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-xs text-gray-600 mt-2">
             {description}
           </p>
           {trend !== undefined && (
@@ -250,22 +250,22 @@ const FilterBar: React.FC = () => {
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="flex flex-wrap items-center gap-3 p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800"
+      className="flex flex-wrap items-center gap-3 p-4 bg-white rounded-lg border border-gray-200"
     >
-      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+      <span className="text-sm font-medium text-gray-700">
         Dataset:
       </span>
       <Badge variant="default" className="cursor-pointer">
         FakeNewsNet
       </Badge>
-      <Badge variant="outline" className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800">
+      <Badge variant="outline" className="cursor-pointer hover:bg-gray-100">
         LIAR
       </Badge>
-      <Badge variant="outline" className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800">
+      <Badge variant="outline" className="cursor-pointer hover:bg-gray-100">
         Combined
       </Badge>
       <div className="flex-1" />
-      <span className="text-xs text-gray-500 dark:text-gray-400">
+      <span className="text-xs text-gray-500">
         Last updated: 2 hours ago
       </span>
     </motion.div>
@@ -307,13 +307,13 @@ export default function AnalyticsPage() {
   const getComplexityBadge = (complexity: string) => {
     switch (complexity.toLowerCase()) {
       case 'low':
-        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Low</Badge>;
+        return <Badge className="bg-green-100 text-green-800">Low</Badge>;
       case 'medium':
-        return <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">Medium</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800">Medium</Badge>;
       case 'high':
-        return <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">High</Badge>;
+        return <Badge className="bg-orange-100 text-orange-800">High</Badge>;
       case 'very high':
-        return <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">Very High</Badge>;
+        return <Badge className="bg-red-100 text-red-800">Very High</Badge>;
       default:
         return <Badge variant="secondary">{complexity}</Badge>;
     }
@@ -323,11 +323,11 @@ export default function AnalyticsPage() {
   const getCostBadge = (cost: string) => {
     switch (cost.toLowerCase()) {
       case 'very high':
-        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Very High</Badge>;
+        return <Badge className="bg-green-100 text-green-800">Very High</Badge>;
       case 'high':
-        return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">High</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800">High</Badge>;
       case 'medium':
-        return <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">Medium</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800">Medium</Badge>;
       default:
         return <Badge variant="secondary">{cost}</Badge>;
     }
@@ -344,7 +344,7 @@ export default function AnalyticsPage() {
         <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
           Project Analytics & Insights
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-3 text-lg">
+        <p className="text-gray-600 mt-3 text-lg">
           Visualizing model performance, information propagation, and strategic outcomes
         </p>
       </motion.div>
@@ -412,14 +412,14 @@ export default function AnalyticsPage() {
               series={modelPerformanceSeries}
               xAxisKey="model"
             />
-            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <p className="text-sm font-medium text-gray-900">
                     Key Finding
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  <p className="text-sm text-gray-600 mt-1">
                     The Ensemble model achieves the highest accuracy (88.4%) and AUC-ROC (93.8%),
                     demonstrating superior fake news detection capabilities by combining multiple
                     machine learning approaches.
@@ -459,7 +459,7 @@ export default function AnalyticsPage() {
                   className="space-y-1"
                 >
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">
+                    <span className="font-medium text-gray-700">
                       {item.feature}
                     </span>
                     <div className="flex items-center gap-2">
@@ -473,12 +473,12 @@ export default function AnalyticsPage() {
                       >
                         {item.category}
                       </Badge>
-                      <span className="text-gray-900 dark:text-gray-100 font-semibold min-w-[3rem] text-right">
+                      <span className="text-gray-900 font-semibold min-w-[3rem] text-right">
                         {item.importancePercent}%
                       </span>
                     </div>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2.5">
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${item.importance * 100}%` }}
@@ -490,14 +490,14 @@ export default function AnalyticsPage() {
                 </motion.div>
               ))}
             </div>
-            <div className="mt-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+            <div className="mt-6 p-4 bg-purple-50 rounded-lg">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <p className="text-sm font-medium text-gray-900">
                     Insight
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  <p className="text-sm text-gray-600 mt-1">
                     Source Credibility (28.4%) and Sentiment Polarity (26.7%) are the most powerful
                     indicators of misinformation, highlighting the importance of network-based and
                     linguistic features in detection.
@@ -532,21 +532,21 @@ export default function AnalyticsPage() {
               xAxisKey="hour"
             />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-              <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <div className="p-4 bg-red-50 rounded-lg border border-red-200">
                 <div className="text-2xl font-bold text-red-600">91.2K</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <div className="text-sm text-gray-600 mt-1">
                   Peak fake news reach
                 </div>
               </div>
-              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                 <div className="text-2xl font-bold text-green-600">49.3K</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <div className="text-sm text-gray-600 mt-1">
                   Peak real news reach
                 </div>
               </div>
-              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
                 <div className="text-2xl font-bold text-yellow-600">1.85x</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <div className="text-sm text-gray-600 mt-1">
                   Final spread ratio
                 </div>
               </div>
@@ -572,7 +572,7 @@ export default function AnalyticsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800">
+            <div className="rounded-lg border border-gray-200">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -590,17 +590,17 @@ export default function AnalyticsPage() {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.3, delay: 0.6 + index * 0.05 }}
-                      className="border-b transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                      className="border-b transition-colors hover:bg-gray-50"
                     >
                       <TableCell className="font-medium">
                         {strategy.strategy}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                          <div className="text-lg font-bold text-gray-900">
                             {strategy.reduction}%
                           </div>
-                          <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div className="w-20 bg-gray-200 rounded-full h-2">
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${strategy.reduction}%` }}
@@ -621,7 +621,7 @@ export default function AnalyticsPage() {
                       <TableCell>
                         {getComplexityBadge(strategy.complexity)}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600 dark:text-gray-400">
+                      <TableCell className="text-sm text-gray-600">
                         {strategy.implementationTime}
                       </TableCell>
                     </motion.tr>
@@ -629,14 +629,14 @@ export default function AnalyticsPage() {
                 </TableBody>
               </Table>
             </div>
-            <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+            <div className="mt-6 p-4 bg-green-50 rounded-lg">
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <p className="text-sm font-medium text-gray-900">
                     Recommended Strategy
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  <p className="text-sm text-gray-600 mt-1">
                     The combined "Labeling + Penalties" approach offers the best balance with 79%
                     misinformation reduction, high cost-effectiveness, and moderate complexity,
                     making it ideal for most implementation scenarios.
