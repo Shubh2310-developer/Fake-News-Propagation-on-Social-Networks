@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Dict, Any, List, Optional
 import logging
+import json
 
 from app.services.network_service import NetworkService
 from app.models.analysis import (
@@ -151,6 +152,23 @@ async def simulate_information_propagation(
             propagation_config=propagation_config
         )
 
+        # Generate a unique propagation ID for this simulation
+        from datetime import datetime
+        propagation_id = f"{network_id}_propagation_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+
+        # Save propagation results for later visualization
+        propagation_storage_path = network_service.networks_storage_path / "propagations"
+        propagation_storage_path.mkdir(exist_ok=True)
+
+        propagation_file = propagation_storage_path / f"{propagation_id}_results.json"
+        with open(propagation_file, 'w') as f:
+            json.dump(results, f, indent=2, default=str)
+
+        logger.info(f"Saved propagation results to {propagation_file}")
+
+        # Add propagation_id to results
+        results['propagation_id'] = propagation_id
+
         return PropagationSimulationResponse(
             network_id=network_id,
             simulation_results=results,
@@ -165,35 +183,156 @@ async def simulate_information_propagation(
 
 @router.get("/propagation/visualize")
 async def get_propagation_visualization(
-    network_id: str = Query(..., description="Network identifier"),
-    simulation_id: str = Query(..., description="Simulation identifier"),
+    propagation_id: str = Query(..., description="Propagation simulation identifier"),
     layout_algorithm: str = Query("spring", description="Layout algorithm"),
+    time_step: Optional[int] = Query(None, description="Specific time step to visualize (None for all)"),
     network_service: NetworkService = Depends(get_network_service)
 ):
     """
     Get visualization data for propagation simulation results.
 
     Args:
-        network_id: Identifier of the network
-        simulation_id: Identifier of the propagation simulation
+        propagation_id: Identifier of the propagation simulation (format: network_id:timestamp)
         layout_algorithm: Algorithm for node positioning
+        time_step: Optional specific time step to visualize
 
     Returns:
-        Propagation visualization data
+        Propagation visualization data with node states, edges, and timeline
     """
     try:
-        # Note: This would need to be extended to store and retrieve simulation results
-        # For now, return placeholder response
-        return {
-            "message": "Propagation visualization endpoint",
+        # Parse propagation_id to extract network_id
+        # Format is expected to be "network_id" or stored propagation results
+        # For now, we'll look for stored propagation results in the network service
+
+        # Check if propagation results are stored
+        propagation_storage_path = network_service.networks_storage_path / "propagations"
+        propagation_storage_path.mkdir(exist_ok=True)
+
+        propagation_file = propagation_storage_path / f"{propagation_id}_results.json"
+
+        if not propagation_file.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Propagation simulation {propagation_id} not found. Please run a propagation simulation first."
+            )
+
+        # Load propagation results
+        with open(propagation_file, 'r') as f:
+            propagation_data = json.load(f)
+
+        network_id = propagation_data.get('network_id')
+        propagation_results = propagation_data.get('results', {})
+
+        # Get the network
+        network = await network_service._get_network(network_id)
+        if not network:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Network {network_id} not found"
+            )
+
+        # Generate visualization data
+        visualization_data = await network_service.get_propagation_visualization(
+            network_id=network_id,
+            propagation_results=propagation_results,
+            layout_algorithm=layout_algorithm
+        )
+
+        # Extract timeline data from propagation history
+        propagation_history = propagation_results.get('propagation_history', [])
+        timeline = []
+
+        for step_data in propagation_history:
+            timeline.append({
+                'step': step_data.get('step', 0),
+                'newly_infected': step_data.get('newly_infected', []),
+                'total_infected': step_data.get('total_infected', 0)
+            })
+
+        # Build node states over time
+        node_states = {}
+        infected_nodes = set(propagation_results.get('final_infected_set', []))
+
+        # Initialize all nodes as susceptible
+        for node in network.nodes():
+            node_states[str(node)] = {
+                'state': 'susceptible',
+                'infection_step': None,
+                'attributes': {
+                    'influence_score': network.nodes[node].get('influence_score', 0.5),
+                    'credibility_score': network.nodes[node].get('credibility_score', 0.5),
+                    'user_type': network.nodes[node].get('user_type', 'regular')
+                }
+            }
+
+        # Update infection states based on propagation history
+        for step_data in propagation_history:
+            step_num = step_data.get('step', 0)
+            for node in step_data.get('newly_infected', []):
+                if str(node) in node_states:
+                    node_states[str(node)]['state'] = 'infected'
+                    node_states[str(node)]['infection_step'] = step_num
+
+        # If time_step is specified, filter to that specific step
+        if time_step is not None:
+            filtered_timeline = [t for t in timeline if t['step'] == time_step]
+            if not filtered_timeline:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Time step {time_step} not found in propagation history"
+                )
+            timeline = filtered_timeline
+
+        # Build edge data with transmission information
+        edges = []
+        for edge in network.edges():
+            source, target = edge
+            edges.append({
+                'source': str(source),
+                'target': str(target),
+                'trust': network.edges[edge].get('trust', 0.5),
+                'interaction_strength': network.edges[edge].get('interaction_strength', 0.5),
+                'transmitted': (
+                    str(source) in node_states and
+                    str(target) in node_states and
+                    node_states[str(source)]['state'] == 'infected' and
+                    node_states[str(target)]['state'] == 'infected' and
+                    node_states[str(target)]['infection_step'] is not None and
+                    node_states[str(source)]['infection_step'] is not None and
+                    node_states[str(target)]['infection_step'] > node_states[str(source)]['infection_step']
+                )
+            })
+
+        # Compile final response
+        response = {
+            "propagation_id": propagation_id,
             "network_id": network_id,
-            "simulation_id": simulation_id,
-            "status": "placeholder"
+            "layout_algorithm": layout_algorithm,
+            "visualization_data": visualization_data,
+            "node_states": node_states,
+            "edges": edges,
+            "timeline": timeline,
+            "summary": {
+                "total_nodes": network.number_of_nodes(),
+                "total_infected": len(infected_nodes),
+                "infection_rate": len(infected_nodes) / network.number_of_nodes() if network.number_of_nodes() > 0 else 0,
+                "total_steps": len(propagation_history),
+                "model": propagation_results.get('model', 'unknown'),
+                "content_type": propagation_results.get('content_properties', {}).get('content_type', 'unknown')
+            },
+            "metadata": {
+                "simulation_timestamp": propagation_data.get('simulation_timestamp', ''),
+                "configuration": propagation_data.get('configuration', {})
+            }
         }
 
+        return response
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error generating propagation visualization: {e}")
-        raise HTTPException(status_code=500, detail="Failed to generate propagation visualization")
+        raise HTTPException(status_code=500, detail=f"Failed to generate propagation visualization: {str(e)}")
 
 @router.get("/network/community/visualize")
 async def get_community_visualization(

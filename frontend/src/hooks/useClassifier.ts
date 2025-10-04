@@ -10,7 +10,7 @@ import { ClassificationResponse, ClassificationRequest } from '@/types/classifie
  * Provides a clean interface for text classification functionality.
  */
 export function useClassifier() {
-  const { data, loading, error, request } = useApi<ClassificationResponse>();
+  const { data, loading, error, request } = useApi<ClassificationResponse>('');
 
   const classifyText = useCallback(
     async (text: string, options?: Partial<ClassificationRequest>) => {

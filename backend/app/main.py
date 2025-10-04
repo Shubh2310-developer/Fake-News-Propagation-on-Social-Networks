@@ -13,6 +13,8 @@ from app.api import api_router
 from app.core.database import init_db, close_db
 from app.core.cache import init_redis, close_redis
 from app.core.logging import configure_logging, get_logger
+from app.services.classifier_service import ClassifierService
+from app.services.model_loader import SimpleEnsemble, CalibratedEnsemble  # Import for ensemble loading
 
 # Load environment variables
 PROJECT_NAME = os.getenv("PROJECT_NAME", "Fake News Game Theory")
@@ -35,6 +37,16 @@ async def lifespan(app: FastAPI):
     logger.info("Starting application...")
     await init_db()
     await init_redis()
+
+    # Load ML models
+    logger.info("Loading ML models...")
+    classifier_service = ClassifierService()
+    loading_results = await classifier_service.load_models()
+    logger.info(f"ML models loaded: {loading_results}")
+
+    # Store classifier service in app state for access in routes
+    app.state.classifier_service = classifier_service
+
     logger.info("✅ Application startup complete.")
 
     yield

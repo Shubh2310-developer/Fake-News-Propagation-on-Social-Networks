@@ -9,6 +9,7 @@ import csv
 import io
 import json
 from pathlib import Path
+import pandas as pd
 
 from app.services.data_service import DataService
 from app.models.data import (
@@ -336,39 +337,118 @@ async def export_simulation_results(
         File download response
     """
     try:
-        # This would need to be integrated with SimulationService
-        # For now, return a placeholder response
+        # Import SimulationService to get results
+        from app.services.simulation_service import SimulationService
+
+        simulation_service = SimulationService()
+
+        # Get simulation results
+        try:
+            results = await simulation_service.get_simulation_results(
+                simulation_id=simulation_id,
+                include_details=include_details
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e))
 
         if format == "csv":
-            # Create CSV response
+            # Create CSV response with simulation data
             output = io.StringIO()
             writer = csv.writer(output)
 
-            # Write headers
-            writer.writerow(["simulation_id", "status", "message"])
-            writer.writerow([simulation_id, "placeholder", "CSV export not fully implemented"])
+            # Write metadata section
+            writer.writerow(["Simulation Results Export"])
+            writer.writerow(["Simulation ID", simulation_id])
+            writer.writerow(["Timestamp", results.get('timestamp', '')])
+            writer.writerow(["Total Rounds", results.get('total_rounds', 0)])
+            writer.writerow([])
+
+            # Write network metrics section
+            writer.writerow(["Network Metrics"])
+            network_metrics = results.get('network_metrics', {})
+            writer.writerow(["Metric", "Value"])
+            for key, value in network_metrics.items():
+                writer.writerow([key, value])
+            writer.writerow([])
+
+            # Write final payoffs section
+            writer.writerow(["Final Payoffs"])
+            final_payoffs = results.get('final_metrics', {}).get('final_payoffs', {})
+            writer.writerow(["Player Type", "Final Payoff"])
+            for player_type, payoff in final_payoffs.items():
+                writer.writerow([player_type, payoff])
+            writer.writerow([])
+
+            # Write payoff trends section
+            writer.writerow(["Payoff Trends Over Time"])
+            payoff_trends = results.get('payoff_trends', {})
+            if payoff_trends:
+                # Write header with player types
+                header = ["Round"] + list(payoff_trends.keys())
+                writer.writerow(header)
+
+                # Find the maximum number of rounds
+                max_rounds = max(len(trends) for trends in payoff_trends.values())
+
+                # Write payoff data for each round
+                for round_num in range(max_rounds):
+                    row = [round_num + 1]
+                    for player_type in payoff_trends.keys():
+                        if round_num < len(payoff_trends[player_type]):
+                            row.append(payoff_trends[player_type][round_num])
+                        else:
+                            row.append('')
+                    writer.writerow(row)
+            writer.writerow([])
+
+            # Write convergence analysis
+            writer.writerow(["Convergence Analysis"])
+            convergence = results.get('convergence_analysis', {})
+            writer.writerow(["Status", convergence.get('status', 'unknown')])
+            writer.writerow(["Converged", convergence.get('converged', False)])
+            writer.writerow([])
+
+            # Write detailed results if requested
+            if include_details and 'raw_results' in results:
+                writer.writerow(["Detailed Round Results"])
+                writer.writerow(["Round", "Player Type", "Payoff", "Action", "Reputation"])
+
+                for idx, round_result in enumerate(results['raw_results']):
+                    round_num = idx + 1
+                    for player_type, payoff in round_result.get('payoffs', {}).items():
+                        reputation = round_result.get('player_states', {}).get(player_type, {}).get('reputation', 'N/A')
+                        action = round_result.get('actions', {}).get(player_type, 'N/A')
+                        writer.writerow([round_num, player_type, payoff, action, reputation])
 
             output.seek(0)
 
             return StreamingResponse(
-                io.BytesIO(output.getvalue().encode()),
+                io.BytesIO(output.getvalue().encode('utf-8')),
                 media_type="text/csv",
                 headers={"Content-Disposition": f"attachment; filename=simulation_{simulation_id}_results.csv"}
             )
 
         elif format == "json":
-            # Create JSON response
-            results = {
+            # Create JSON response with full simulation data
+            export_data = {
                 "simulation_id": simulation_id,
-                "status": "placeholder",
-                "message": "JSON export not fully implemented",
-                "include_details": include_details
+                "timestamp": results.get('timestamp', ''),
+                "parameters": results.get('parameters', {}),
+                "total_rounds": results.get('total_rounds', 0),
+                "network_metrics": results.get('network_metrics', {}),
+                "final_metrics": results.get('final_metrics', {}),
+                "payoff_trends": results.get('payoff_trends', {}),
+                "convergence_analysis": results.get('convergence_analysis', {})
             }
 
-            json_content = json.dumps(results, indent=2)
+            # Include detailed results if requested
+            if include_details and 'raw_results' in results:
+                export_data["raw_results"] = results['raw_results']
+
+            json_content = json.dumps(export_data, indent=2, default=str)
 
             return StreamingResponse(
-                io.BytesIO(json_content.encode()),
+                io.BytesIO(json_content.encode('utf-8')),
                 media_type="application/json",
                 headers={"Content-Disposition": f"attachment; filename=simulation_{simulation_id}_results.json"}
             )
@@ -379,7 +459,7 @@ async def export_simulation_results(
         raise
     except Exception as e:
         logger.error(f"Export error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to export simulation results")
+        raise HTTPException(status_code=500, detail=f"Failed to export simulation results: {str(e)}")
 
 @router.get("/export/dataset/{dataset_id}")
 async def export_dataset(
@@ -399,38 +479,63 @@ async def export_dataset(
     """
     try:
         # Get dataset statistics to verify it exists
-        await data_service.get_dataset_statistics(dataset_id)
+        stats = await data_service.get_dataset_statistics(dataset_id)
 
-        # Create placeholder export (actual implementation would fetch real data)
+        # Retrieve the actual dataset from the cache
+        dataset = data_service.dataset_cache.get(dataset_id)
+
+        if dataset is None:
+            # Try to load from storage if not in cache
+            dataset_file = data_service.data_storage_path / f"{dataset_id}_data.csv"
+            if dataset_file.exists():
+                import pandas as pd
+                dataset = pd.read_csv(str(dataset_file))
+                data_service._add_to_cache(dataset_id, dataset)
+            else:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Dataset {dataset_id} data not found in cache or storage"
+                )
+
         if format == "csv":
             output = io.StringIO()
             writer = csv.writer(output)
 
+            # Write header
             writer.writerow(["text", "label"])
-            writer.writerow(["Sample text for dataset export", "0"])
-            writer.writerow([f"Dataset {dataset_id} export placeholder", "1"])
+
+            # Write all dataset rows
+            for _, row in dataset.iterrows():
+                writer.writerow([row.get('text', ''), row.get('label', '')])
 
             output.seek(0)
 
             return StreamingResponse(
-                io.BytesIO(output.getvalue().encode()),
+                io.BytesIO(output.getvalue().encode('utf-8')),
                 media_type="text/csv",
                 headers={"Content-Disposition": f"attachment; filename=dataset_{dataset_id}.csv"}
             )
 
         elif format == "json":
-            data = {
+            # Convert dataset to JSON format
+            data_list = []
+            for _, row in dataset.iterrows():
+                data_list.append({
+                    "text": row.get('text', ''),
+                    "label": int(row.get('label', 0)) if pd.notna(row.get('label')) else None
+                })
+
+            export_data = {
                 "dataset_id": dataset_id,
-                "data": [
-                    {"text": "Sample text for dataset export", "label": 0},
-                    {"text": f"Dataset {dataset_id} export placeholder", "label": 1}
-                ]
+                "num_samples": len(dataset),
+                "statistics": stats,
+                "data": data_list
             }
 
-            json_content = json.dumps(data, indent=2)
+            json_content = json.dumps(export_data, indent=2, default=str)
 
             return StreamingResponse(
-                io.BytesIO(json_content.encode()),
+                io.BytesIO(json_content.encode('utf-8')),
                 media_type="application/json",
                 headers={"Content-Disposition": f"attachment; filename=dataset_{dataset_id}.json"}
             )
@@ -443,4 +548,4 @@ async def export_dataset(
         raise
     except Exception as e:
         logger.error(f"Dataset export error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to export dataset")
+        raise HTTPException(status_code=500, detail=f"Failed to export dataset: {str(e)}")

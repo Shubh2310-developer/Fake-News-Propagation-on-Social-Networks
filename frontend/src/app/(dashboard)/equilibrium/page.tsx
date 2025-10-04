@@ -335,14 +335,14 @@ export default function EquilibriumPage() {
         transition={{ duration: 0.5 }}
       >
         <div className="flex items-center gap-3 mb-3">
-          <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+          <div className="p-3 bg-purple-100 rounded-lg">
             <Target className="h-6 w-6 text-purple-600" />
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
             Nash Equilibrium Analysis
           </h1>
         </div>
-        <p className="text-gray-600 dark:text-gray-400 text-lg">
+        <p className="text-gray-600 text-lg">
           Explore the strategic outcomes of the misinformation game by adjusting key parameters and scenarios
         </p>
       </motion.div>
@@ -367,7 +367,7 @@ export default function EquilibriumPage() {
             <CardContent className="space-y-6">
               {/* Scenario Selector */}
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
                   Scenario
                 </label>
                 <Select value={selectedScenario} onValueChange={handleScenarioChange}>
@@ -387,7 +387,7 @@ export default function EquilibriumPage() {
 
               {/* Player Interaction Selector */}
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
                   Player Interaction
                 </label>
                 <Select value={selectedInteraction} onValueChange={handleInteractionChange}>
@@ -405,14 +405,14 @@ export default function EquilibriumPage() {
               </div>
 
               <div className="border-t pt-4">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                <h3 className="text-sm font-semibold text-gray-900 mb-4">
                   Game Parameters
                 </h3>
 
                 {/* Detection Penalty Slider */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm text-gray-700 dark:text-gray-300">
+                    <label className="text-sm text-gray-700">
                       Detection Penalty
                     </label>
                     <Badge variant="outline">{parameters.detectionPenalty}%</Badge>
@@ -430,7 +430,7 @@ export default function EquilibriumPage() {
                 {/* Verification Cost Slider */}
                 <div className="space-y-3 mt-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm text-gray-700 dark:text-gray-300">
+                    <label className="text-sm text-gray-700">
                       Verification Cost
                     </label>
                     <Badge variant="outline">{parameters.verificationCost}%</Badge>
@@ -448,7 +448,7 @@ export default function EquilibriumPage() {
                 {/* Engagement Revenue Slider */}
                 <div className="space-y-3 mt-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm text-gray-700 dark:text-gray-300">
+                    <label className="text-sm text-gray-700">
                       Engagement Revenue
                     </label>
                     <Badge variant="outline">{parameters.engagementRevenue}%</Badge>
@@ -466,7 +466,7 @@ export default function EquilibriumPage() {
                 {/* Network Density Slider */}
                 <div className="space-y-3 mt-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm text-gray-700 dark:text-gray-300">
+                    <label className="text-sm text-gray-700">
                       Network Density
                     </label>
                     <Badge variant="outline">{parameters.networkDensity}%</Badge>
@@ -484,7 +484,7 @@ export default function EquilibriumPage() {
                 {/* Learning Rate Slider */}
                 <div className="space-y-3 mt-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm text-gray-700 dark:text-gray-300">
+                    <label className="text-sm text-gray-700">
                       Learning Rate
                     </label>
                     <Badge variant="outline">{parameters.learningRate}%</Badge>
@@ -572,15 +572,15 @@ export default function EquilibriumPage() {
                 <CardContent className="space-y-6">
                   {/* Pure Strategy Equilibrium */}
                   {payoffMatrix.equilibrium && (
-                    <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
                       <div className="flex items-center gap-2 mb-3">
                         <CheckCircle2 className="h-5 w-5 text-purple-600" />
-                        <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                        <h4 className="font-semibold text-gray-900">
                           Pure Strategy Equilibrium
                         </h4>
                       </div>
                       <div className="space-y-2 text-sm">
-                        <p className="text-gray-700 dark:text-gray-300">
+                        <p className="text-gray-700">
                           <span className="font-medium">{payoffMatrix.players[0]}:</span>{' '}
                           {
                             payoffMatrix.strategies[payoffMatrix.players[0]][
@@ -588,7 +588,7 @@ export default function EquilibriumPage() {
                             ]
                           }
                         </p>
-                        <p className="text-gray-700 dark:text-gray-300">
+                        <p className="text-gray-700">
                           <span className="font-medium">{payoffMatrix.players[1]}:</span>{' '}
                           {
                             payoffMatrix.strategies[payoffMatrix.players[1]][
@@ -596,17 +596,17 @@ export default function EquilibriumPage() {
                             ]
                           }
                         </p>
-                        <div className="pt-2 mt-2 border-t border-purple-200 dark:border-purple-800">
+                        <div className="pt-2 mt-2 border-t border-purple-200">
                           <div className="flex items-center gap-2">
                             <Badge
                               variant="outline"
-                              className="border-purple-500 text-purple-700 dark:text-purple-400"
+                              className="border-purple-500 text-purple-700"
                             >
                               {payoffMatrix.equilibrium.type === 'pure' ? 'Pure Strategy' : 'Mixed Strategy'}
                             </Badge>
                             <Badge
                               variant="outline"
-                              className="border-green-500 text-green-700 dark:text-green-400"
+                              className="border-green-500 text-green-700"
                             >
                               Stability: {(payoffMatrix.equilibrium.stability * 100).toFixed(0)}%
                             </Badge>
@@ -618,7 +618,7 @@ export default function EquilibriumPage() {
 
                   {/* Expected Payoffs */}
                   <div>
-                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                    <h4 className="font-semibold text-gray-900 mb-4">
                       Expected Payoffs at Equilibrium
                     </h4>
                     <div className="grid grid-cols-2 gap-4">
@@ -626,12 +626,12 @@ export default function EquilibriumPage() {
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+                        className="p-4 bg-blue-50 rounded-lg border border-blue-200"
                       >
-                        <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                        <div className="text-sm text-gray-600 mb-1">
                           {payoffMatrix.players[0]}
                         </div>
-                        <div className="text-2xl font-bold text-blue-700 dark:text-blue-400">
+                        <div className="text-2xl font-bold text-blue-700">
                           {animatedPayoff1.toFixed(2)}
                         </div>
                       </motion.div>
@@ -640,12 +640,12 @@ export default function EquilibriumPage() {
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.3 }}
-                        className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800"
+                        className="p-4 bg-red-50 rounded-lg border border-red-200"
                       >
-                        <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                        <div className="text-sm text-gray-600 mb-1">
                           {payoffMatrix.players[1]}
                         </div>
-                        <div className="text-2xl font-bold text-red-700 dark:text-red-400">
+                        <div className="text-2xl font-bold text-red-700">
                           {animatedPayoff2.toFixed(2)}
                         </div>
                       </motion.div>
@@ -689,10 +689,10 @@ export default function EquilibriumPage() {
                   {/* Additional Metrics */}
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                     <div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                      <div className="text-sm text-gray-600 mb-1">
                         Equilibrium Type
                       </div>
-                      <div className="font-semibold text-gray-900 dark:text-gray-100">
+                      <div className="font-semibold text-gray-900">
                         {payoffMatrix.equilibrium?.classification === 'strict'
                           ? 'Strict Nash'
                           : payoffMatrix.equilibrium?.classification === 'weak'
@@ -701,10 +701,10 @@ export default function EquilibriumPage() {
                       </div>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                      <div className="text-sm text-gray-600 mb-1">
                         Social Welfare
                       </div>
-                      <div className="font-semibold text-gray-900 dark:text-gray-100">
+                      <div className="font-semibold text-gray-900">
                         {(
                           (animatedPayoff1 + animatedPayoff2) /
                           2

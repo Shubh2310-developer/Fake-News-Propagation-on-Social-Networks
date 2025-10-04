@@ -1,6 +1,6 @@
 # backend/app/api/v1/classifier.py
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
 from typing import Dict, Any, List, Optional
 import logging
 import uuid
@@ -21,10 +21,10 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Dependency to get classifier service instance
-def get_classifier_service():
-    """Get classifier service instance."""
-    return ClassifierService()
+# Dependency to get classifier service instance from app state
+def get_classifier_service(request: Request) -> ClassifierService:
+    """Get classifier service instance from app state."""
+    return request.app.state.classifier_service
 
 @router.post("/predict", response_model=TextClassificationResponse)
 async def predict_fake_news(

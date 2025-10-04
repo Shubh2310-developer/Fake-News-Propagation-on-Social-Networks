@@ -4,7 +4,7 @@ import axios from 'axios';
  * A pre-configured Axios instance for making API requests to the backend.
  */
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
   headers: {
     'Content-Type': 'application/json',
   },

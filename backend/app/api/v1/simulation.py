@@ -233,7 +233,7 @@ async def get_simulation_statistics(
         Statistics about simulations and system status
     """
     try:
-        stats = simulation_service.get_simulation_statistics()
+        stats = await simulation_service.get_simulation_statistics()
         return {
             "statistics": stats,
             "status": "active"

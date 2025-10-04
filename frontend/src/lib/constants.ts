@@ -1,15 +1,15 @@
 import { GameParameters } from '@/types/simulation';
 
 export const API_ROUTES = {
-  CLASSIFIER_PREDICT: '/classifier/predict',
-  SIMULATION_RUN: '/simulation/run',
-  SIMULATION_STATUS: (id: string) => `/simulation/status/${id}`,
-  SIMULATION_RESULTS: (id: string) => `/simulation/results/${id}`,
-  NETWORK_METRICS: '/analysis/network/metrics',
-  EQUILIBRIUM_CALCULATE: '/equilibrium/calculate',
-  GAME_THEORY_ANALYSIS: '/game-theory/analyze',
-  PAYOFF_MATRIX: '/game-theory/payoff-matrix',
-  STRATEGY_EVOLUTION: '/simulation/strategy-evolution',
+  CLASSIFIER_PREDICT: '/api/v1/classifier/predict',
+  SIMULATION_RUN: '/api/v1/simulation/run',
+  SIMULATION_STATUS: (id: string) => `/api/v1/simulation/status/${id}`,
+  SIMULATION_RESULTS: (id: string) => `/api/v1/simulation/results/${id}`,
+  NETWORK_METRICS: '/api/v1/analysis/network/metrics',
+  EQUILIBRIUM_CALCULATE: '/api/v1/equilibrium/calculate',
+  GAME_THEORY_ANALYSIS: '/api/v1/game-theory/analyze',
+  PAYOFF_MATRIX: '/api/v1/game-theory/payoff-matrix',
+  STRATEGY_EVOLUTION: '/api/v1/simulation/strategy-evolution',
 } as const;
 
 export const DEFAULT_GAME_PARAMS: GameParameters = {

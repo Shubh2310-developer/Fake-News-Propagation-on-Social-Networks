@@ -1,0 +1,144 @@
+{
+  "simulation_id": "514c0cc2-5090-4747-bbc4-0bb74cf78fc2",
+  "parameters": {
+    "network_config": {
+      "num_nodes": 50,
+      "network_type": "watts_strogatz",
+      "attachment_preference": 5,
+      "rewiring_probability": 0.1,
+      "random_seed": null
+    },
+    "game_config": {
+      "num_rounds": 10,
+      "num_spreaders": 5,
+      "num_fact_checkers": 3,
+      "num_platforms": 1,
+      "learning_rate": 0.1,
+      "exploration_rate": 0.1,
+      "random_seed": null
+    },
+    "description": "",
+    "tags": [],
+    "save_detailed_history": true,
+    "save_network": true
+  },
+  "total_rounds": 10,
+  "payoff_trends": {
+    "spreader": [
+      6272.500000000001,
+      6337.500000000001,
+      6337.500000000001,
+      6337.500000000001,
+      6272.500000000001,
+      6272.500000000001,
+      6272.500000000001,
+      6337.500000000001,
+      6272.500000000001,
+      6337.500000000001
+    ],
+    "fact_checker": [
+      -4.92,
+      -11.868,
+      -5.928,
+      -11.868,
+      1.053,
+      -4.811999999999999,
+      0.6480000000000001,
+      -21.86,
+      0.891,
+      -5.883
+    ],
+    "platform": [
+      674.1215,
+      674.1215,
+      674.1215,
+      674.1215,
+      674.1215,
+      674.1215,
+      674.1215,
+      674.1215,
+      674.1215,
+      674.1215
+    ]
+  },
+  "final_metrics": {
+    "final_payoffs": {
+      "spreader": 6337.500000000001,
+      "fact_checker": -5.883,
+      "platform": 674.1215
+    },
+    "final_reputation_scores": {
+      "spreader_0": 0.2750000000000001,
+      "spreader_1": 0.2750000000000001,
+      "spreader_2": 0.2750000000000001,
+      "spreader_3": 0.2750000000000001,
+      "spreader_4": 0.2750000000000001,
+      "fact_checker_0": 0.5,
+      "fact_checker_1": 0.5,
+      "fact_checker_2": 0.5,
+      "platform_0": 0.2499999999999998
+    }
+  },
+  "network_metrics": {
+    "num_nodes": 50,
+    "num_edges": 250,
+    "density": 0.20408163265306123,
+    "is_connected": true,
+    "average_clustering": 0.529904872904873,
+    "transitivity": 0.5186977562692477,
+    "diameter": 4,
+    "radius": 3,
+    "average_shortest_path_length": 2.209795918367347,
+    "degree_statistics": {
+      "mean": 10.0,
+      "std": 0.9591663046625439,
+      "min": "8",
+      "max": "13",
+      "median": 10.0
+    },
+    "degree_distribution": {
+      "degree_counts": {
+        "9": 12,
+        "10": 24,
+        "11": 9,
+        "13": 1,
+        "12": 2,
+        "8": 2
+      },
+      "power_law_exponent": 0.08336636043333928,
+      "gini_coefficient": 0.04983999999999995
+    },
+    "degree_assortativity": -0.017158293175048456,
+    "small_world_metrics": {
+      "clustering_coefficient": 0.529904872904873,
+      "characteristic_path_length": 2.209795918367347,
+      "clustering_coefficient_random": 0.20408163265306123,
+      "characteristic_path_length_random": 1.6841930222396597,
+      "small_world_sigma": 1.978944843593121,
+      "small_world_omega": -1.8343852062905515
+    }
+  },
+  "raw_results": [
+    "RoundResult(round_number=0, strategies={'spreader': SpreaderStrategy(content_type=<SpreaderContentType.FAKE_EMOTIONAL: 'fake_emotional'>, timing=<SpreaderTiming.PEAK_HOURS: 'peak_hours'>, targeting=<SpreaderTargeting.BROAD: 'broad'>), 'fact_checker': FactCheckerStrategy(intensity=<VerificationIntensity.THOROUGH: 'thorough'>, response_speed=<ResponseSpeed.STANDARD: 'standard'>, resource_allocation=<ResourceAllocation.BALANCED: 'balanced'>), 'platform': PlatformStrategy(policy=<ContentPolicy.PERMISSIVE: 'permissive'>, enforcement_level=<EnforcementLevel.LENIENT: 'lenient'>, transparency=<TransparencyLevel.PARTIAL: 'partial'>)}, outcome={'reach': 3250, 'detection_penalty': 100, 'reputation_cost': 50, 'accuracy': 0.9, 'effort_cost': 25, 'reputation_gain': 20, 'user_engagement': 700.0, 'moderation_cost': 20, 'credibility_score': 0.3, 'regulatory_risk': 50}, payoffs={'spreader': 6272.500000000001, 'fact_checker': -4.92, 'platform': 674.1215}, player_states={'spreader_0': {'reputation': 0.45, 'type': 'Spreader'}, 'spreader_1': {'reputation': 0.45, 'type': 'Spreader'}, 'spreader_2': {'reputation': 0.45, 'type': 'Spreader'}, 'spreader_3': {'reputation': 0.45, 'type': 'Spreader'}, 'spreader_4': {'reputation': 0.45, 'type': 'Spreader'}, 'fact_checker_0': {'reputation': 0.55, 'type': 'FactChecker'}, 'fact_checker_1': {'reputation': 0.55, 'type': 'FactChecker'}, 'fact_checker_2': {'reputation': 0.55, 'type': 'FactChecker'}, 'platform_0': {'reputation': 0.475, 'type': 'Platform'}}, reputation_changes={'spreader_0': -0.05, 'spreader_1': -0.05, 'spreader_2': -0.05, 'spreader_3': -0.05, 'spreader_4': -0.05, 'fact_checker_0': 0.05, 'fact_checker_1': 0.05, 'fact_checker_2': 0.05, 'platform_0': -0.025})",
+    "RoundResult(round_number=1, strategies={'spreader': SpreaderStrategy(content_type=<SpreaderContentType.FAKE_EMOTIONAL: 'fake_emotional'>, timing=<SpreaderTiming.PEAK_HOURS: 'peak_hours'>, targeting=<SpreaderTargeting.BROAD: 'broad'>), 'fact_checker': FactCheckerStrategy(intensity=<VerificationIntensity.THOROUGH: 'thorough'>, response_speed=<ResponseSpeed.FAST: 'fast'>, resource_allocation=<ResourceAllocation.BALANCED: 'balanced'>), 'platform': PlatformStrategy(policy=<ContentPolicy.PERMISSIVE: 'permissive'>, enforcement_level=<EnforcementLevel.LENIENT: 'lenient'>, transparency=<TransparencyLevel.PARTIAL: 'partial'>)}, outcome={'reach': 3250, 'detection_penalty': 0, 'reputation_cost': 0, 'accuracy': 0.1, 'effort_cost': 25, 'reputation_gain': -10, 'user_engagement': 700.0, 'moderation_cost': 20, 'credibility_score': 0.3, 'regulatory_risk': 50}, payoffs={'spreader': 6337.500000000001, 'fact_checker': -11.868, 'platform': 674.1215}, player_states={'spreader_0': {'reputation': 0.455, 'type': 'Spreader'}, 'spreader_1': {'reputation': 0.455, 'type': 'Spreader'}, 'spreader_2': {'reputation': 0.455, 'type': 'Spreader'}, 'spreader_3': {'reputation': 0.455, 'type': 'Spreader'}, 'spreader_4': {'reputation': 0.455, 'type': 'Spreader'}, 'fact_checker_0': {'reputation': 0.5, 'type': 'FactChecker'}, 'fact_checker_1': {'reputation': 0.5, 'type': 'FactChecker'}, 'fact_checker_2': {'reputation': 0.5, 'type': 'FactChecker'}, 'platform_0': {'reputation': 0.44999999999999996, 'type': 'Platform'}}, reputation_changes={'spreader_0': 0.005000000000000001, 'spreader_1': 0.005000000000000001, 'spreader_2': 0.005000000000000001, 'spreader_3': 0.005000000000000001, 'spreader_4': 0.005000000000000001, 'fact_checker_0': -0.05, 'fact_checker_1': -0.05, 'fact_checker_2': -0.05, 'platform_0': -0.025})",
+    "RoundResult(round_number=2, strategies={'spreader': SpreaderStrategy(content_type=<SpreaderContentType.FAKE_EMOTIONAL: 'fake_emotional'>, timing=<SpreaderTiming.PEAK_HOURS: 'peak_hours'>, targeting=<SpreaderTargeting.BROAD: 'broad'>), 'fact_checker': FactCheckerStrategy(intensity=<VerificationIntensity.BASIC: 'basic'>, response_speed=<ResponseSpeed.DELAYED: 'delayed'>, resource_allocation=<ResourceAllocation.BALANCED: 'balanced'>), 'platform': PlatformStrategy(policy=<ContentPolicy.PERMISSIVE: 'permissive'>, enforcement_level=<EnforcementLevel.LENIENT: 'lenient'>, transparency=<TransparencyLevel.PARTIAL: 'partial'>)}, outcome={'reach': 3250, 'detection_penalty': 0, 'reputation_cost': 0, 'accuracy': 0.1, 'effort_cost': 10, 'reputation_gain': -10, 'user_engagement': 700.0, 'moderation_cost': 20, 'credibility_score': 0.3, 'regulatory_risk': 50}, payoffs={'spreader': 6337.500000000001, 'fact_checker': -5.928, 'platform': 674.1215}, player_states={'spreader_0': {'reputation': 0.46, 'type': 'Spreader'}, 'spreader_1': {'reputation': 0.46, 'type': 'Spreader'}, 'spreader_2': {'reputation': 0.46, 'type': 'Spreader'}, 'spreader_3': {'reputation': 0.46, 'type': 'Spreader'}, 'spreader_4': {'reputation': 0.46, 'type': 'Spreader'}, 'fact_checker_0': {'reputation': 0.45, 'type': 'FactChecker'}, 'fact_checker_1': {'reputation': 0.45, 'type': 'FactChecker'}, 'fact_checker_2': {'reputation': 0.45, 'type': 'FactChecker'}, 'platform_0': {'reputation': 0.42499999999999993, 'type': 'Platform'}}, reputation_changes={'spreader_0': 0.005000000000000001, 'spreader_1': 0.005000000000000001, 'spreader_2': 0.005000000000000001, 'spreader_3': 0.005000000000000001, 'spreader_4': 0.005000000000000001, 'fact_checker_0': -0.05, 'fact_checker_1': -0.05, 'fact_checker_2': -0.05, 'platform_0': -0.025})",
+    "RoundResult(round_number=3, strategies={'spreader': SpreaderStrategy(content_type=<SpreaderContentType.FAKE_EMOTIONAL: 'fake_emotional'>, timing=<SpreaderTiming.PEAK_HOURS: 'peak_hours'>, targeting=<SpreaderTargeting.BROAD: 'broad'>), 'fact_checker': FactCheckerStrategy(intensity=<VerificationIntensity.THOROUGH: 'thorough'>, response_speed=<ResponseSpeed.FAST: 'fast'>, resource_allocation=<ResourceAllocation.BALANCED: 'balanced'>), 'platform': PlatformStrategy(policy=<ContentPolicy.PERMISSIVE: 'permissive'>, enforcement_level=<EnforcementLevel.LENIENT: 'lenient'>, transparency=<TransparencyLevel.PARTIAL: 'partial'>)}, outcome={'reach': 3250, 'detection_penalty': 0, 'reputation_cost': 0, 'accuracy': 0.1, 'effort_cost': 25, 'reputation_gain': -10, 'user_engagement': 700.0, 'moderation_cost': 20, 'credibility_score': 0.3, 'regulatory_risk': 50}, payoffs={'spreader': 6337.500000000001, 'fact_checker': -11.868, 'platform': 674.1215}, player_states={'spreader_0': {'reputation': 0.465, 'type': 'Spreader'}, 'spreader_1': {'reputation': 0.465, 'type': 'Spreader'}, 'spreader_2': {'reputation': 0.465, 'type': 'Spreader'}, 'spreader_3': {'reputation': 0.465, 'type': 'Spreader'}, 'spreader_4': {'reputation': 0.465, 'type': 'Spreader'}, 'fact_checker_0': {'reputation': 0.4, 'type': 'FactChecker'}, 'fact_checker_1': {'reputation': 0.4, 'type': 'FactChecker'}, 'fact_checker_2': {'reputation': 0.4, 'type': 'FactChecker'}, 'platform_0': {'reputation': 0.3999999999999999, 'type': 'Platform'}}, reputation_changes={'spreader_0': 0.005000000000000001, 'spreader_1': 0.005000000000000001, 'spreader_2': 0.005000000000000001, 'spreader_3': 0.005000000000000001, 'spreader_4': 0.005000000000000001, 'fact_checker_0': -0.05, 'fact_checker_1': -0.05, 'fact_checker_2': -0.05, 'platform_0': -0.025})",
+    "RoundResult(round_number=4, strategies={'spreader': SpreaderStrategy(content_type=<SpreaderContentType.FAKE_EMOTIONAL: 'fake_emotional'>, timing=<SpreaderTiming.PEAK_HOURS: 'peak_hours'>, targeting=<SpreaderTargeting.BROAD: 'broad'>), 'fact_checker': FactCheckerStrategy(intensity=<VerificationIntensity.BASIC: 'basic'>, response_speed=<ResponseSpeed.IMMEDIATE: 'immediate'>, resource_allocation=<ResourceAllocation.BALANCED: 'balanced'>), 'platform': PlatformStrategy(policy=<ContentPolicy.PERMISSIVE: 'permissive'>, enforcement_level=<EnforcementLevel.LENIENT: 'lenient'>, transparency=<TransparencyLevel.PARTIAL: 'partial'>)}, outcome={'reach': 3250, 'detection_penalty': 100, 'reputation_cost': 50, 'accuracy': 0.9, 'effort_cost': 10, 'reputation_gain': 20, 'user_engagement': 700.0, 'moderation_cost': 20, 'credibility_score': 0.3, 'regulatory_risk': 50}, payoffs={'spreader': 6272.500000000001, 'fact_checker': 1.053, 'platform': 674.1215}, player_states={'spreader_0': {'reputation': 0.41500000000000004, 'type': 'Spreader'}, 'spreader_1': {'reputation': 0.41500000000000004, 'type': 'Spreader'}, 'spreader_2': {'reputation': 0.41500000000000004, 'type': 'Spreader'}, 'spreader_3': {'reputation': 0.41500000000000004, 'type': 'Spreader'}, 'spreader_4': {'reputation': 0.41500000000000004, 'type': 'Spreader'}, 'fact_checker_0': {'reputation': 0.45, 'type': 'FactChecker'}, 'fact_checker_1': {'reputation': 0.45, 'type': 'FactChecker'}, 'fact_checker_2': {'reputation': 0.45, 'type': 'FactChecker'}, 'platform_0': {'reputation': 0.3749999999999999, 'type': 'Platform'}}, reputation_changes={'spreader_0': -0.05, 'spreader_1': -0.05, 'spreader_2': -0.05, 'spreader_3': -0.05, 'spreader_4': -0.05, 'fact_checker_0': 0.05, 'fact_checker_1': 0.05, 'fact_checker_2': 0.05, 'platform_0': -0.025})",
+    "RoundResult(round_number=5, strategies={'spreader': SpreaderStrategy(content_type=<SpreaderContentType.FAKE_EMOTIONAL: 'fake_emotional'>, timing=<SpreaderTiming.PEAK_HOURS: 'peak_hours'>, targeting=<SpreaderTargeting.BROAD: 'broad'>), 'fact_checker': FactCheckerStrategy(intensity=<VerificationIntensity.THOROUGH: 'thorough'>, response_speed=<ResponseSpeed.FAST: 'fast'>, resource_allocation=<ResourceAllocation.BALANCED: 'balanced'>), 'platform': PlatformStrategy(policy=<ContentPolicy.PERMISSIVE: 'permissive'>, enforcement_level=<EnforcementLevel.LENIENT: 'lenient'>, transparency=<TransparencyLevel.PARTIAL: 'partial'>)}, outcome={'reach': 3250, 'detection_penalty': 100, 'reputation_cost': 50, 'accuracy': 0.9, 'effort_cost': 25, 'reputation_gain': 20, 'user_engagement': 700.0, 'moderation_cost': 20, 'credibility_score': 0.3, 'regulatory_risk': 50}, payoffs={'spreader': 6272.500000000001, 'fact_checker': -4.811999999999999, 'platform': 674.1215}, player_states={'spreader_0': {'reputation': 0.36500000000000005, 'type': 'Spreader'}, 'spreader_1': {'reputation': 0.36500000000000005, 'type': 'Spreader'}, 'spreader_2': {'reputation': 0.36500000000000005, 'type': 'Spreader'}, 'spreader_3': {'reputation': 0.36500000000000005, 'type': 'Spreader'}, 'spreader_4': {'reputation': 0.36500000000000005, 'type': 'Spreader'}, 'fact_checker_0': {'reputation': 0.5, 'type': 'FactChecker'}, 'fact_checker_1': {'reputation': 0.5, 'type': 'FactChecker'}, 'fact_checker_2': {'reputation': 0.5, 'type': 'FactChecker'}, 'platform_0': {'reputation': 0.34999999999999987, 'type': 'Platform'}}, reputation_changes={'spreader_0': -0.05, 'spreader_1': -0.05, 'spreader_2': -0.05, 'spreader_3': -0.05, 'spreader_4': -0.05, 'fact_checker_0': 0.05, 'fact_checker_1': 0.05, 'fact_checker_2': 0.05, 'platform_0': -0.025})",
+    "RoundResult(round_number=6, strategies={'spreader': SpreaderStrategy(content_type=<SpreaderContentType.FAKE_EMOTIONAL: 'fake_emotional'>, timing=<SpreaderTiming.PEAK_HOURS: 'peak_hours'>, targeting=<SpreaderTargeting.BROAD: 'broad'>), 'fact_checker': FactCheckerStrategy(intensity=<VerificationIntensity.BASIC: 'basic'>, response_speed=<ResponseSpeed.DELAYED: 'delayed'>, resource_allocation=<ResourceAllocation.BALANCED: 'balanced'>), 'platform': PlatformStrategy(policy=<ContentPolicy.PERMISSIVE: 'permissive'>, enforcement_level=<EnforcementLevel.LENIENT: 'lenient'>, transparency=<TransparencyLevel.PARTIAL: 'partial'>)}, outcome={'reach': 3250, 'detection_penalty': 100, 'reputation_cost': 50, 'accuracy': 0.9, 'effort_cost': 10, 'reputation_gain': 20, 'user_engagement': 700.0, 'moderation_cost': 20, 'credibility_score': 0.3, 'regulatory_risk': 50}, payoffs={'spreader': 6272.500000000001, 'fact_checker': 0.6480000000000001, 'platform': 674.1215}, player_states={'spreader_0': {'reputation': 0.31500000000000006, 'type': 'Spreader'}, 'spreader_1': {'reputation': 0.31500000000000006, 'type': 'Spreader'}, 'spreader_2': {'reputation': 0.31500000000000006, 'type': 'Spreader'}, 'spreader_3': {'reputation': 0.31500000000000006, 'type': 'Spreader'}, 'spreader_4': {'reputation': 0.31500000000000006, 'type': 'Spreader'}, 'fact_checker_0': {'reputation': 0.55, 'type': 'FactChecker'}, 'fact_checker_1': {'reputation': 0.55, 'type': 'FactChecker'}, 'fact_checker_2': {'reputation': 0.55, 'type': 'FactChecker'}, 'platform_0': {'reputation': 0.32499999999999984, 'type': 'Platform'}}, reputation_changes={'spreader_0': -0.05, 'spreader_1': -0.05, 'spreader_2': -0.05, 'spreader_3': -0.05, 'spreader_4': -0.05, 'fact_checker_0': 0.05, 'fact_checker_1': 0.05, 'fact_checker_2': 0.05, 'platform_0': -0.025})",
+    "RoundResult(round_number=7, strategies={'spreader': SpreaderStrategy(content_type=<SpreaderContentType.FAKE_EMOTIONAL: 'fake_emotional'>, timing=<SpreaderTiming.PEAK_HOURS: 'peak_hours'>, targeting=<SpreaderTargeting.BROAD: 'broad'>), 'fact_checker': FactCheckerStrategy(intensity=<VerificationIntensity.COMPREHENSIVE: 'comprehensive'>, response_speed=<ResponseSpeed.STANDARD: 'standard'>, resource_allocation=<ResourceAllocation.BALANCED: 'balanced'>), 'platform': PlatformStrategy(policy=<ContentPolicy.PERMISSIVE: 'permissive'>, enforcement_level=<EnforcementLevel.LENIENT: 'lenient'>, transparency=<TransparencyLevel.PARTIAL: 'partial'>)}, outcome={'reach': 3250, 'detection_penalty': 0, 'reputation_cost': 0, 'accuracy': 0.1, 'effort_cost': 50, 'reputation_gain': -10, 'user_engagement': 700.0, 'moderation_cost': 20, 'credibility_score': 0.3, 'regulatory_risk': 50}, payoffs={'spreader': 6337.500000000001, 'fact_checker': -21.86, 'platform': 674.1215}, player_states={'spreader_0': {'reputation': 0.32000000000000006, 'type': 'Spreader'}, 'spreader_1': {'reputation': 0.32000000000000006, 'type': 'Spreader'}, 'spreader_2': {'reputation': 0.32000000000000006, 'type': 'Spreader'}, 'spreader_3': {'reputation': 0.32000000000000006, 'type': 'Spreader'}, 'spreader_4': {'reputation': 0.32000000000000006, 'type': 'Spreader'}, 'fact_checker_0': {'reputation': 0.5, 'type': 'FactChecker'}, 'fact_checker_1': {'reputation': 0.5, 'type': 'FactChecker'}, 'fact_checker_2': {'reputation': 0.5, 'type': 'FactChecker'}, 'platform_0': {'reputation': 0.2999999999999998, 'type': 'Platform'}}, reputation_changes={'spreader_0': 0.005000000000000001, 'spreader_1': 0.005000000000000001, 'spreader_2': 0.005000000000000001, 'spreader_3': 0.005000000000000001, 'spreader_4': 0.005000000000000001, 'fact_checker_0': -0.05, 'fact_checker_1': -0.05, 'fact_checker_2': -0.05, 'platform_0': -0.025})",
+    "RoundResult(round_number=8, strategies={'spreader': SpreaderStrategy(content_type=<SpreaderContentType.FAKE_EMOTIONAL: 'fake_emotional'>, timing=<SpreaderTiming.PEAK_HOURS: 'peak_hours'>, targeting=<SpreaderTargeting.BROAD: 'broad'>), 'fact_checker': FactCheckerStrategy(intensity=<VerificationIntensity.BASIC: 'basic'>, response_speed=<ResponseSpeed.FAST: 'fast'>, resource_allocation=<ResourceAllocation.BALANCED: 'balanced'>), 'platform': PlatformStrategy(policy=<ContentPolicy.PERMISSIVE: 'permissive'>, enforcement_level=<EnforcementLevel.LENIENT: 'lenient'>, transparency=<TransparencyLevel.PARTIAL: 'partial'>)}, outcome={'reach': 3250, 'detection_penalty': 100, 'reputation_cost': 50, 'accuracy': 0.9, 'effort_cost': 10, 'reputation_gain': 20, 'user_engagement': 700.0, 'moderation_cost': 20, 'credibility_score': 0.3, 'regulatory_risk': 50}, payoffs={'spreader': 6272.500000000001, 'fact_checker': 0.891, 'platform': 674.1215}, player_states={'spreader_0': {'reputation': 0.2700000000000001, 'type': 'Spreader'}, 'spreader_1': {'reputation': 0.2700000000000001, 'type': 'Spreader'}, 'spreader_2': {'reputation': 0.2700000000000001, 'type': 'Spreader'}, 'spreader_3': {'reputation': 0.2700000000000001, 'type': 'Spreader'}, 'spreader_4': {'reputation': 0.2700000000000001, 'type': 'Spreader'}, 'fact_checker_0': {'reputation': 0.55, 'type': 'FactChecker'}, 'fact_checker_1': {'reputation': 0.55, 'type': 'FactChecker'}, 'fact_checker_2': {'reputation': 0.55, 'type': 'FactChecker'}, 'platform_0': {'reputation': 0.2749999999999998, 'type': 'Platform'}}, reputation_changes={'spreader_0': -0.05, 'spreader_1': -0.05, 'spreader_2': -0.05, 'spreader_3': -0.05, 'spreader_4': -0.05, 'fact_checker_0': 0.05, 'fact_checker_1': 0.05, 'fact_checker_2': 0.05, 'platform_0': -0.025})",
+    "RoundResult(round_number=9, strategies={'spreader': SpreaderStrategy(content_type=<SpreaderContentType.FAKE_EMOTIONAL: 'fake_emotional'>, timing=<SpreaderTiming.PEAK_HOURS: 'peak_hours'>, targeting=<SpreaderTargeting.BROAD: 'broad'>), 'fact_checker': FactCheckerStrategy(intensity=<VerificationIntensity.BASIC: 'basic'>, response_speed=<ResponseSpeed.IMMEDIATE: 'immediate'>, resource_allocation=<ResourceAllocation.BALANCED: 'balanced'>), 'platform': PlatformStrategy(policy=<ContentPolicy.PERMISSIVE: 'permissive'>, enforcement_level=<EnforcementLevel.LENIENT: 'lenient'>, transparency=<TransparencyLevel.PARTIAL: 'partial'>)}, outcome={'reach': 3250, 'detection_penalty': 0, 'reputation_cost': 0, 'accuracy': 0.1, 'effort_cost': 10, 'reputation_gain': -10, 'user_engagement': 700.0, 'moderation_cost': 20, 'credibility_score': 0.3, 'regulatory_risk': 50}, payoffs={'spreader': 6337.500000000001, 'fact_checker': -5.883, 'platform': 674.1215}, player_states={'spreader_0': {'reputation': 0.2750000000000001, 'type': 'Spreader'}, 'spreader_1': {'reputation': 0.2750000000000001, 'type': 'Spreader'}, 'spreader_2': {'reputation': 0.2750000000000001, 'type': 'Spreader'}, 'spreader_3': {'reputation': 0.2750000000000001, 'type': 'Spreader'}, 'spreader_4': {'reputation': 0.2750000000000001, 'type': 'Spreader'}, 'fact_checker_0': {'reputation': 0.5, 'type': 'FactChecker'}, 'fact_checker_1': {'reputation': 0.5, 'type': 'FactChecker'}, 'fact_checker_2': {'reputation': 0.5, 'type': 'FactChecker'}, 'platform_0': {'reputation': 0.2499999999999998, 'type': 'Platform'}}, reputation_changes={'spreader_0': 0.005000000000000001, 'spreader_1': 0.005000000000000001, 'spreader_2': 0.005000000000000001, 'spreader_3': 0.005000000000000001, 'spreader_4': 0.005000000000000001, 'fact_checker_0': -0.05, 'fact_checker_1': -0.05, 'fact_checker_2': -0.05, 'platform_0': -0.025})"
+  ],
+  "convergence_analysis": {
+    "status": "analyzed",
+    "recent_payoff_variances": {
+      "spreader": 1056.25,
+      "fact_checker": 46.23621381,
+      "platform": 0.0
+    },
+    "convergence_threshold": 0.1,
+    "converged": false
+  },
+  "timestamp": "2025-10-02T10:40:56.141981"
+}

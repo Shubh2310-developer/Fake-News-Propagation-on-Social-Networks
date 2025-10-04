@@ -10,9 +10,9 @@ import { GameParameters, SimulationResults } from '@/types/simulation';
  * Provides functions to run simulations, check status, and fetch results.
  */
 export function useSimulation() {
-  const { request: runRequest, ...runState } = useApi<{ simulation_id: string }>();
-  const { request: statusRequest, ...statusState } = useApi<{ status: string; progress: number }>();
-  const { request: resultsRequest, ...resultsState } = useApi<SimulationResults>();
+  const { request: runRequest, ...runState } = useApi<{ simulation_id: string }>('');
+  const { request: statusRequest, ...statusState } = useApi<{ status: string; progress: number }>('');
+  const { request: resultsRequest, ...resultsState } = useApi<SimulationResults>('');
 
   const runSimulation = useCallback(
     async (params: GameParameters) => {

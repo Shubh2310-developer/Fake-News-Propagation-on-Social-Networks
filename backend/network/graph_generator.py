@@ -223,13 +223,13 @@ class SocialNetworkGenerator:
             )
             graph.nodes[node]['user_type'] = user_type
 
-            # Adjust attributes based on user type
-            self._adjust_attributes_by_type(graph.nodes[node], user_type)
-
-            # Additional attributes
+            # Additional attributes (must be set before adjust_attributes_by_type)
             graph.nodes[node]['creation_time'] = np.random.randint(0, 365)  # Days ago
             graph.nodes[node]['activity_level'] = np.random.exponential(1.0)
             graph.nodes[node]['follower_count'] = int(graph.degree(node) * np.random.uniform(5, 50))
+
+            # Adjust attributes based on user type
+            self._adjust_attributes_by_type(graph.nodes[node], user_type)
 
     def _adjust_attributes_by_type(self, node_data: Dict[str, Any], user_type: str) -> None:
         """

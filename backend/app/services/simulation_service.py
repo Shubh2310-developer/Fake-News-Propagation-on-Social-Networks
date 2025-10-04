@@ -18,12 +18,9 @@ from game_theory import (
     RoundResult
 )
 from app.core.config import settings
+from app.core.cache import simulation_cache
 
 logger = logging.getLogger(__name__)
-
-# In-memory storage for simulation jobs
-# In production, this would use Redis or a database
-simulation_jobs: Dict[str, Any] = {}
 
 
 class SimulationService:
@@ -34,36 +31,7 @@ class SimulationService:
         self.simulation_storage_path = Path(getattr(settings, 'SIMULATION_STORAGE_PATH', 'simulations'))
         self.simulation_storage_path.mkdir(exist_ok=True)
 
-        # Load existing simulation metadata
-        self._load_existing_simulations()
-
-        logger.info("SimulationService initialized")
-
-    def _load_existing_simulations(self) -> None:
-        """Load metadata for existing simulations from storage."""
-        try:
-            metadata_file = self.simulation_storage_path / 'metadata.json'
-            if metadata_file.exists():
-                with open(metadata_file, 'r') as f:
-                    existing_metadata = json.load(f)
-                    simulation_jobs.update(existing_metadata)
-                logger.info(f"Loaded {len(existing_metadata)} existing simulations")
-        except Exception as e:
-            logger.warning(f"Failed to load existing simulation metadata: {e}")
-
-    def _save_simulation_metadata(self) -> None:
-        """Save simulation metadata to storage."""
-        try:
-            metadata_file = self.simulation_storage_path / 'metadata.json'
-            # Only save metadata, not full results
-            metadata = {
-                sim_id: {k: v for k, v in sim_data.items() if k != 'results'}
-                for sim_id, sim_data in simulation_jobs.items()
-            }
-            with open(metadata_file, 'w') as f:
-                json.dump(metadata, f, indent=2, default=str)
-        except Exception as e:
-            logger.error(f"Failed to save simulation metadata: {e}")
+        logger.info("SimulationService initialized with Redis storage")
 
     async def start_simulation(self, params: Dict[str, Any]) -> str:
         """
@@ -81,20 +49,23 @@ class SimulationService:
             # Validate parameters
             validated_params = self._validate_simulation_params(params)
 
-            # Initialize simulation job
-            simulation_jobs[simulation_id] = {
+            # Initialize simulation job data
+            created_at = datetime.utcnow().isoformat()
+            simulation_data = {
                 "id": simulation_id,
                 "status": "pending",
                 "params": validated_params,
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": created_at,
                 "started_at": None,
                 "completed_at": None,
                 "error": None,
                 "progress": 0.0
             }
 
-            # Save metadata
-            self._save_simulation_metadata()
+            # Store in Redis
+            success = await simulation_cache.create_simulation(simulation_id, simulation_data)
+            if not success:
+                logger.warning(f"Failed to store simulation {simulation_id} in Redis, falling back to file storage")
 
             # Start simulation asynchronously
             asyncio.create_task(self._run_simulation_async(simulation_id, validated_params))
@@ -148,43 +119,53 @@ class SimulationService:
     async def _run_simulation_async(self, simulation_id: str, params: Dict[str, Any]) -> None:
         """Run the simulation asynchronously."""
         try:
-            # Update status
-            simulation_jobs[simulation_id]["status"] = "running"
-            simulation_jobs[simulation_id]["started_at"] = datetime.utcnow().isoformat()
-            self._save_simulation_metadata()
+            # Update status to running
+            sim_data = await simulation_cache.get_simulation(simulation_id)
+            if sim_data:
+                sim_data["status"] = "running"
+                sim_data["started_at"] = datetime.utcnow().isoformat()
+                await simulation_cache.update_simulation(simulation_id, sim_data)
 
             # Run the actual simulation
             await self._execute_simulation(simulation_id, params)
 
         except Exception as e:
             logger.error(f"Simulation {simulation_id} failed: {e}")
-            simulation_jobs[simulation_id].update({
-                "status": "failed",
-                "error": str(e),
-                "completed_at": datetime.utcnow().isoformat()
-            })
-            self._save_simulation_metadata()
+
+            # Update status to failed
+            sim_data = await simulation_cache.get_simulation(simulation_id)
+            if sim_data:
+                sim_data.update({
+                    "status": "failed",
+                    "error": str(e),
+                    "completed_at": datetime.utcnow().isoformat()
+                })
+                await simulation_cache.update_simulation(simulation_id, sim_data)
 
     async def _execute_simulation(self, simulation_id: str, params: Dict[str, Any]) -> None:
         """Execute the core simulation logic."""
         try:
             # Step 1: Generate network
             logger.info(f"Generating network for simulation {simulation_id}")
-            network_config = NetworkConfig(**params['network_config'])
-            generator = SocialNetworkGenerator(network_config)
-            network = generator.generate_network(
-                network_type=params['network_config']['network_type']
-            )
 
-            # Update progress
-            simulation_jobs[simulation_id]["progress"] = 0.2
+            # Extract network_type separately as it's not part of NetworkConfig dataclass
+            network_type = params['network_config'].get('network_type', 'barabasi_albert')
+
+            # Create NetworkConfig without network_type (filter it out)
+            network_config_params = {k: v for k, v in params['network_config'].items() if k != 'network_type'}
+            network_config = NetworkConfig(**network_config_params)
+            generator = SocialNetworkGenerator(network_config)
+            network = generator.generate_network(network_type=network_type)
+
+            # Update progress in Redis
+            await self._update_simulation_progress(simulation_id, 0.2)
 
             # Step 2: Initialize players
             logger.info(f"Initializing players for simulation {simulation_id}")
             players = self._create_players(params['game_config'])
 
-            # Update progress
-            simulation_jobs[simulation_id]["progress"] = 0.3
+            # Update progress in Redis
+            await self._update_simulation_progress(simulation_id, 0.3)
 
             # Step 3: Configure simulation
             sim_config = SimulationConfig(
@@ -209,23 +190,35 @@ class SimulationService:
                 simulation_id, results, network, params
             )
 
-            # Update final status
-            simulation_jobs[simulation_id].update({
-                "status": "completed",
-                "completed_at": datetime.utcnow().isoformat(),
-                "progress": 1.0,
-                "summary": self._create_result_summary(processed_results)
-            })
+            # Update final status in Redis
+            sim_data = await simulation_cache.get_simulation(simulation_id)
+            if sim_data:
+                sim_data.update({
+                    "status": "completed",
+                    "completed_at": datetime.utcnow().isoformat(),
+                    "progress": 1.0,
+                    "summary": self._create_result_summary(processed_results)
+                })
+                await simulation_cache.update_simulation(simulation_id, sim_data)
 
             # Save full results to file
             await self._save_simulation_results(simulation_id, processed_results)
 
-            self._save_simulation_metadata()
             logger.info(f"Simulation {simulation_id} completed successfully")
 
         except Exception as e:
             logger.error(f"Error executing simulation {simulation_id}: {e}")
             raise
+
+    async def _update_simulation_progress(self, simulation_id: str, progress: float) -> None:
+        """Helper method to update simulation progress in Redis."""
+        try:
+            sim_data = await simulation_cache.get_simulation(simulation_id)
+            if sim_data:
+                sim_data["progress"] = progress
+                await simulation_cache.update_simulation(simulation_id, sim_data)
+        except Exception as e:
+            logger.warning(f"Failed to update progress for simulation {simulation_id}: {e}")
 
     def _create_players(self, game_config: Dict[str, Any]) -> List:
         """Create player instances based on configuration."""
@@ -264,7 +257,7 @@ class SimulationService:
         results = simulation_engine.run_simulation()
 
         # Update progress to 90% after simulation completes
-        simulation_jobs[simulation_id]["progress"] = 0.9
+        await self._update_simulation_progress(simulation_id, 0.9)
 
         return results
 
@@ -374,10 +367,12 @@ class SimulationService:
         Returns:
             Dictionary containing simulation status and metadata
         """
-        if simulation_id not in simulation_jobs:
+        # Try to get from Redis first
+        job = await simulation_cache.get_simulation(simulation_id)
+
+        if not job:
             raise ValueError(f"Simulation {simulation_id} not found")
 
-        job = simulation_jobs[simulation_id]
         return {
             'simulation_id': simulation_id,
             'status': job['status'],
@@ -400,10 +395,12 @@ class SimulationService:
         Returns:
             Dictionary containing simulation results
         """
-        if simulation_id not in simulation_jobs:
+        # Get simulation metadata from Redis
+        job = await simulation_cache.get_simulation(simulation_id)
+
+        if not job:
             raise ValueError(f"Simulation {simulation_id} not found")
 
-        job = simulation_jobs[simulation_id]
         if job['status'] != 'completed':
             raise ValueError(f"Simulation {simulation_id} is not completed (status: {job['status']})")
 
@@ -441,21 +438,22 @@ class SimulationService:
         Returns:
             Dictionary containing simulation list and metadata
         """
-        # Filter simulations
+        # Get all simulations from Redis
+        all_simulations = await simulation_cache.get_all_simulations()
+
+        # Filter by status if provided
         filtered_sims = []
-        for sim_id, sim_data in simulation_jobs.items():
-            if status is None or sim_data['status'] == status:
+        for sim_data in all_simulations:
+            if status is None or sim_data.get('status') == status:
                 filtered_sims.append({
-                    'simulation_id': sim_id,
-                    'status': sim_data['status'],
-                    'created_at': sim_data['created_at'],
+                    'simulation_id': sim_data.get('id'),
+                    'status': sim_data.get('status'),
+                    'created_at': sim_data.get('created_at'),
                     'description': sim_data.get('params', {}).get('description', ''),
                     'summary': sim_data.get('summary', {})
                 })
 
-        # Sort by creation time (newest first)
-        filtered_sims.sort(key=lambda x: x['created_at'], reverse=True)
-
+        # Already sorted by creation time (newest first) from Redis
         # Apply pagination
         paginated_sims = filtered_sims[offset:offset + limit]
 
@@ -477,21 +475,23 @@ class SimulationService:
         Returns:
             True if cancellation was successful
         """
-        if simulation_id not in simulation_jobs:
+        # Get simulation from Redis
+        job = await simulation_cache.get_simulation(simulation_id)
+
+        if not job:
             raise ValueError(f"Simulation {simulation_id} not found")
 
-        job = simulation_jobs[simulation_id]
         if job['status'] not in ['pending', 'running']:
             raise ValueError(f"Cannot cancel simulation with status: {job['status']}")
 
-        # Update status
-        simulation_jobs[simulation_id].update({
+        # Update status in Redis
+        job.update({
             'status': 'cancelled',
             'completed_at': datetime.utcnow().isoformat(),
             'error': 'Cancelled by user'
         })
 
-        self._save_simulation_metadata()
+        await simulation_cache.update_simulation(simulation_id, job)
         logger.info(f"Simulation {simulation_id} cancelled")
         return True
 
@@ -505,7 +505,9 @@ class SimulationService:
         Returns:
             True if deletion was successful
         """
-        if simulation_id not in simulation_jobs:
+        # Check if simulation exists in Redis
+        exists = await simulation_cache.exists(simulation_id)
+        if not exists:
             raise ValueError(f"Simulation {simulation_id} not found")
 
         try:
@@ -514,11 +516,8 @@ class SimulationService:
             if results_file.exists():
                 results_file.unlink()
 
-            # Remove from memory
-            del simulation_jobs[simulation_id]
-
-            # Save updated metadata
-            self._save_simulation_metadata()
+            # Remove from Redis
+            await simulation_cache.delete_simulation(simulation_id)
 
             logger.info(f"Simulation {simulation_id} deleted")
             return True
@@ -527,15 +526,18 @@ class SimulationService:
             logger.error(f"Failed to delete simulation {simulation_id}: {e}")
             raise
 
-    def get_simulation_statistics(self) -> Dict[str, Any]:
+    async def get_simulation_statistics(self) -> Dict[str, Any]:
         """Get overall simulation statistics."""
+        # Get all simulations from Redis
+        all_simulations = await simulation_cache.get_all_simulations()
+
         status_counts = {}
-        for sim_data in simulation_jobs.values():
-            status = sim_data['status']
+        for sim_data in all_simulations:
+            status = sim_data.get('status', 'unknown')
             status_counts[status] = status_counts.get(status, 0) + 1
 
         return {
-            'total_simulations': len(simulation_jobs),
+            'total_simulations': len(all_simulations),
             'status_breakdown': status_counts,
             'storage_path': str(self.simulation_storage_path)
         }

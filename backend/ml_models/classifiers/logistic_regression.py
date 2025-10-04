@@ -119,6 +119,10 @@ class LogisticRegressionClassifier(BaseClassifier):
         else:
             features = np.array(texts)
 
+        # Ensure 2D array shape (sklearn requirement)
+        if features.ndim == 1:
+            features = features.reshape(1, -1)
+
         predictions = self._model.predict(features)
         return predictions
 
@@ -140,6 +144,10 @@ class LogisticRegressionClassifier(BaseClassifier):
             features = texts.values
         else:
             features = np.array(texts)
+
+        # Ensure 2D array shape (sklearn requirement)
+        if features.ndim == 1:
+            features = features.reshape(1, -1)
 
         probabilities = self._model.predict_proba(features)
         return probabilities
@@ -209,19 +217,27 @@ class LogisticRegressionClassifier(BaseClassifier):
         Returns:
             Loaded classifier instance
         """
+        import os
         model_data = joblib.load(file_path)
 
-        # Create new instance
-        classifier = cls(
-            model_name=model_data["model_name"],
-            **model_data.get("config", {})
-        )
+        # Check if it's a raw sklearn model or our wrapped format
+        if isinstance(model_data, dict) and "model" in model_data:
+            # It's our wrapped format (dictionary)
+            classifier = cls(
+                model_name=model_data["model_name"],
+                **model_data.get("config", {})
+            )
+            classifier._model = model_data["model"]
+            classifier.is_trained = model_data["is_trained"]
+            logger.info(f"Loaded wrapped model from {file_path}")
+        else:
+            # It's a raw sklearn model from training pipeline
+            model_name = os.path.basename(file_path).replace('.joblib', '')
+            classifier = cls(model_name=model_name)
+            classifier._model = model_data
+            classifier.is_trained = True
+            logger.info(f"Loaded raw sklearn model from {file_path}")
 
-        # Restore model state
-        classifier._model = model_data["model"]
-        classifier.is_trained = model_data["is_trained"]
-
-        logger.info(f"Model loaded from {file_path}")
         return classifier
 
     def get_feature_importance(self) -> Dict[str, float]:

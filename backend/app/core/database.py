@@ -49,10 +49,15 @@ async def init_db():
     """
     Initialize database connection and run migrations if needed.
     """
-    async with engine.begin() as conn:
-        # Create tables if they don't exist
-        # (better practice: use Alembic for real migrations)
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            # Create tables if they don't exist
+            # (better practice: use Alembic for real migrations)
+            await conn.run_sync(Base.metadata.create_all)
+        print("✅ Database connected successfully")
+    except Exception as e:
+        print(f"⚠️  Database connection failed: {e}")
+        print("⚠️  Running without database - some features may be limited")
 
 
 # -------------------------

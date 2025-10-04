@@ -140,27 +140,27 @@ export const PayoffMatrix: React.FC<PayoffMatrixProps> = ({
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse border border-slate-300 dark:border-slate-700">
+            <table className="min-w-full border-collapse border border-slate-300">
               <thead>
                 <tr>
-                  <th className="border border-slate-300 bg-slate-50 p-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800">
+                  <th className="border border-slate-300 bg-slate-50 p-3 text-sm font-medium text-gray-900">
                     {/* Empty cell for top-left corner */}
                   </th>
                   <th
                     colSpan={strategies[players[1]].length}
-                    className="border border-slate-300 bg-slate-50 p-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800"
+                    className="border border-slate-300 bg-slate-50 p-3 text-sm font-medium text-gray-900"
                   >
                     {players[1]}
                   </th>
                 </tr>
                 <tr>
-                  <th className="border border-slate-300 bg-slate-50 p-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800">
+                  <th className="border border-slate-300 bg-slate-50 p-3 text-sm font-medium text-gray-900">
                     {players[0]}
                   </th>
                   {strategies[players[1]].map((colStrategy, colIndex) => (
                     <th
                       key={colIndex}
-                      className="border border-slate-300 bg-slate-50 p-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800"
+                      className="border border-slate-300 bg-slate-50 p-3 text-sm font-medium text-gray-900"
                     >
                       {colStrategy}
                     </th>
@@ -170,7 +170,7 @@ export const PayoffMatrix: React.FC<PayoffMatrixProps> = ({
               <tbody>
                 {strategies[players[0]].map((rowStrategy, rowIndex) => (
                   <tr key={rowIndex}>
-                    <th className="border border-slate-300 bg-slate-50 p-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-800">
+                    <th className="border border-slate-300 bg-slate-50 p-3 text-sm font-medium text-gray-900">
                       {rowStrategy}
                     </th>
                     {strategies[players[1]].map((colStrategy, colIndex) => {
@@ -182,11 +182,11 @@ export const PayoffMatrix: React.FC<PayoffMatrixProps> = ({
                         <motion.td
                           key={colIndex}
                           className={cn(
-                            'border border-slate-300 p-3 text-center dark:border-slate-700 cursor-pointer',
-                            'transition-all duration-300 relative',
-                            isEq && 'bg-yellow-100 dark:bg-yellow-900/30 ring-2 ring-yellow-400 ring-inset',
-                            isSel && 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500 ring-inset',
-                            isHovered && 'bg-slate-100 dark:bg-slate-700/50 scale-105'
+                            'border border-slate-300 p-3 text-center cursor-pointer',
+                            'transition-all duration-300 relative bg-white',
+                            isEq && 'bg-yellow-100 ring-2 ring-yellow-400 ring-inset',
+                            isSel && 'bg-blue-100 ring-2 ring-blue-500 ring-inset',
+                            isHovered && 'bg-slate-100 scale-105'
                           )}
                           animate={isEq ? {
                             boxShadow: [
@@ -207,12 +207,12 @@ export const PayoffMatrix: React.FC<PayoffMatrixProps> = ({
                           <div className="flex flex-col gap-1">
                             <AnimatedPayoff
                               value={payoffs[rowIndex][colIndex][players[0]]}
-                              color="text-blue-600 dark:text-blue-400"
+                              color="text-blue-600"
                               isEquilibrium={isEq}
                             />
                             <AnimatedPayoff
                               value={payoffs[rowIndex][colIndex][players[1]]}
-                              color="text-red-600 dark:text-red-400"
+                              color="text-red-600"
                               isEquilibrium={isEq}
                             />
                           </div>
@@ -264,12 +264,12 @@ export const PayoffMatrix: React.FC<PayoffMatrixProps> = ({
             className="mt-4 flex flex-wrap gap-4 text-sm"
           >
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-blue-600 dark:text-blue-400">Blue:</span>
-              <span className="text-slate-700 dark:text-slate-300">{players[0]} Payoff</span>
+              <span className="font-semibold text-blue-600">Blue:</span>
+              <span className="text-slate-700">{players[0]} Payoff</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-red-600 dark:text-red-400">Red:</span>
-              <span className="text-slate-700 dark:text-slate-300">{players[1]} Payoff</span>
+              <span className="font-semibold text-red-600">Red:</span>
+              <span className="text-slate-700">{players[1]} Payoff</span>
             </div>
             {highlightEquilibrium && equilibrium && (
               <motion.div
@@ -278,14 +278,14 @@ export const PayoffMatrix: React.FC<PayoffMatrixProps> = ({
                 transition={{ delay: 0.5 }}
                 className="flex items-center gap-2"
               >
-                <div className="h-3 w-3 rounded bg-yellow-200 dark:bg-yellow-800/50 ring-2 ring-yellow-400"></div>
-                <span className="text-slate-700 dark:text-slate-300">Nash Equilibrium</span>
+                <div className="h-3 w-3 rounded bg-yellow-200 ring-2 ring-yellow-400"></div>
+                <span className="text-slate-700">Nash Equilibrium</span>
               </motion.div>
             )}
             {selectedCell && (
               <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded bg-blue-100 dark:bg-blue-800/50 ring-2 ring-blue-500"></div>
-                <span className="text-slate-700 dark:text-slate-300">Selected Strategy</span>
+                <div className="h-3 w-3 rounded bg-blue-100 ring-2 ring-blue-500"></div>
+                <span className="text-slate-700">Selected Strategy</span>
               </div>
             )}
           </motion.div>
@@ -300,29 +300,29 @@ export const PayoffMatrix: React.FC<PayoffMatrixProps> = ({
                 transition={{ duration: 0.4, delay: 0.2 }}
                 className="mt-4 overflow-hidden"
               >
-                <div className="rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 p-4 border border-yellow-200 dark:border-yellow-800">
-                  <h4 className="mb-2 font-semibold text-yellow-900 dark:text-yellow-100 flex items-center gap-2">
+                <div className="rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50 p-4 border border-yellow-200">
+                  <h4 className="mb-2 font-semibold text-yellow-900 flex items-center gap-2">
                     <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
                     Nash Equilibrium
                   </h4>
-                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                    At equilibrium, <span className="font-semibold text-blue-700 dark:text-blue-400">{players[0]}</span> chooses{' '}
+                  <p className="text-sm text-slate-700 leading-relaxed">
+                    At equilibrium, <span className="font-semibold text-blue-700">{players[0]}</span> chooses{' '}
                     <span className="font-bold">&quot;{strategies[players[0]][equilibrium.strategies[0]]}&quot;</span> and{' '}
-                    <span className="font-semibold text-red-700 dark:text-red-400">{players[1]}</span> chooses{' '}
+                    <span className="font-semibold text-red-700">{players[1]}</span> chooses{' '}
                     <span className="font-bold">&quot;{strategies[players[1]][equilibrium.strategies[1]]}&quot;</span>.{' '}
                     This results in payoffs of{' '}
-                    <span className="font-bold text-blue-700 dark:text-blue-400">
+                    <span className="font-bold text-blue-700">
                       {equilibrium.payoffs[players[0]].toFixed(2)}
                     </span>{' '}
                     for {players[0]} and{' '}
-                    <span className="font-bold text-red-700 dark:text-red-400">
+                    <span className="font-bold text-red-700">
                       {equilibrium.payoffs[players[1]].toFixed(2)}
                     </span>{' '}
                     for {players[1]}.
                   </p>
                   {equilibrium.stability !== undefined && (
-                    <div className="mt-3 pt-3 border-t border-yellow-200 dark:border-yellow-800">
-                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                    <div className="mt-3 pt-3 border-t border-yellow-200">
+                      <p className="text-xs text-slate-600">
                         Stability: <span className="font-semibold">{(equilibrium.stability * 100).toFixed(1)}%</span>
                         {' • '}
                         Type: <span className="font-semibold capitalize">{equilibrium.type}</span>

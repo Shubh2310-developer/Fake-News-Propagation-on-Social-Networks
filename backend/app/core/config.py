@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     # Redis
     # -------------------
     REDIS_URL: str = "redis://localhost:6379/0"
+    redis_url: str = "redis://localhost:6379/0"  # Alias for cache.py compatibility
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
 
     # -------------------
     # CORS
@@ -56,7 +60,8 @@ class Settings(BaseSettings):
 
     model_config = {
         "env_file": ".env",
-        "case_sensitive": True
+        "case_sensitive": True,
+        "extra": "ignore"  # Ignore extra fields from .env that aren't defined in the model
     }
 
 

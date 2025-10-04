@@ -12,7 +12,7 @@ from app.models.common import CommonBaseModel, ResponseMetadata
 class TextClassificationRequest(CommonBaseModel):
     text: str = Field(..., description="Input text to classify")
     model_type: str = Field(
-        "ensemble", description="Model to use: ['bert', 'ensemble', 'traditional']"
+        "ensemble", description="Model to use: ['ensemble', 'bert', 'lstm', 'random_forest', 'gradient_boosting', 'logistic_regression', 'naive_bayes']"
     )
     return_confidence: bool = Field(True, description="Return probability/confidence scores")
     explain_prediction: bool = Field(False, description="Include explanation (e.g., feature importance)")
@@ -51,7 +51,7 @@ class TextClassificationResponse(CommonBaseModel):
 class BatchClassificationRequest(CommonBaseModel):
     texts: List[str] = Field(..., description="List of texts to classify")
     model_type: str = Field(
-        "ensemble", description="Model to use: ['bert', 'ensemble', 'traditional']"
+        "ensemble", description="Model to use: ['ensemble', 'bert', 'lstm', 'random_forest', 'gradient_boosting', 'logistic_regression', 'naive_bayes']"
     )
     return_confidence: bool = Field(True, description="Return probability/confidence scores")
 

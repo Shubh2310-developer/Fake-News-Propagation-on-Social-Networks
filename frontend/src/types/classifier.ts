@@ -9,7 +9,7 @@
 /**
  * Available classifier model types
  */
-export type ClassifierModelType = 'ensemble' | 'bert' | 'lstm' | 'logistic_regression' | 'naive_bayes' | 'svm' | 'random_forest';
+export type ClassifierModelType = 'ensemble' | 'bert' | 'lstm' | 'logistic_regression' | 'naive_bayes' | 'gradient_boosting' | 'random_forest';
 
 /**
  * Classification labels
