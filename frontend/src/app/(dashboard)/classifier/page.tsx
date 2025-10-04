@@ -108,11 +108,11 @@ const MODEL_INFO: Record<ClassifierModelType, { label: string; description: stri
   },
   bert: {
     label: 'DistilBERT Transformer',
-    description: 'Deep learning transformer model (requires additional setup)',
+    description: 'Deep learning transformer model (coming soon - in development)',
   },
   lstm: {
     label: 'LSTM Neural Network',
-    description: 'Recurrent neural network model (requires additional setup)',
+    description: 'Recurrent neural network model (coming soon - in development)',
   },
 };
 
