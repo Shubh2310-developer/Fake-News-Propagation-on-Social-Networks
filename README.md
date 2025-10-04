@@ -24,8 +24,26 @@ All documentation is in the [`docs/`](docs/) directory.
 - 📖 [Documentation Index](docs/README.md) - Complete documentation catalog
 - 📖 [Getting Started Guide](docs/START_HERE.md) - Quick 1-page guide
 - 📖 [Quick Start Guide](docs/QUICKSTART.md) - Detailed setup
+- 🚀 [**Deployment Guide**](docs/QUICK_DEPLOY.md) - **Deploy to production** ⭐
 - 📖 [API Documentation](docs/api/endpoints.md) - API reference
 - 📖 [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute
+
+## 🚀 Production Deployment
+
+**Deploy in 30 minutes with Vercel + Render** (~$21/month):
+
+1. Create accounts: [Vercel](https://vercel.com) & [Render](https://render.com)
+2. Deploy database + backend on Render
+3. Deploy frontend on Vercel
+4. Configure environment variables
+
+**See:** [Quick Deploy Guide](docs/QUICK_DEPLOY.md) | [Full Deployment Guide](docs/DEPLOYMENT_GUIDE.md)
+
+**Alternative Options:**
+- Docker on DigitalOcean ($12/month)
+- AWS/GCP (Enterprise scale)
+
+[→ View all deployment options](docs/QUICK_DEPLOY.md)
 
 ## ✨ Features
 
